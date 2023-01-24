@@ -3,8 +3,9 @@ from astropy.coordinates import SkyCoord
 from astroquery.jplhorizons import Horizons
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
+
 
 PLOT_MAX = 1
 
@@ -39,8 +40,7 @@ def fetch_data(date):
 
     # Define a list of objects to retrieve data for
     objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299'},  {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'id': '399'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499'},
-               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699'},  {'name': 'Uranus', 'mass': 8.6810e25 * u.kg, 'id': '799'},  {'name': 'Neptune', 'mass': 1.0243e26 * u.kg, 'id': '899'},  {'name': 'Pluto', 'mass': 1.30900e22 * u.kg, 'id': '999'}]
-
+               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699'}]
     # Initialize an empty list to store the data
     data = []
 
@@ -141,42 +141,18 @@ def simulate(time_steps, time_step_size, initial_conditions):
         print(str(i) + ' / ' +
               str(time_steps))
 
+    # For debugging purposes, print the distance between every planet to the sun
+    for i, body in enumerate(results[0]):
+        if body['name'] != 'Sun':
+            print(body['name'] + ' to Sun: ' + str(np.linalg.norm(
+                results[0][i]['position'] - results[0][0]['position'])))
+
     animate(results)
 
 
 def animate(results):
-    # Create a figure and 3D axes
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    fig.set_size_inches(7, 6)
-
-    # Create a list of scatter plots for each body
-    plots = []
-    for i, body in enumerate(results[0]):
-        x, y, z = body['position']
-
-        # Remove the quantity from the scalar values
-        x = x.value
-        y = y.value
-        z = z.value
-
-        plots.append(ax.scatter([x], [y], [z], label=body['name']))
-    plt.legend()
-
-    # Create the animation function
-    def update(i):
-        for j, body in enumerate(results[i]):
-            x, y, z = body['position']
-            x = x.value
-            y = y.value
-            z = z.value
-            plots[j].set_offsets([[x, y, z]])
-    ani = FuncAnimation(fig, update, frames=range(
-        len(results)), repeat=True, interval=60)
-
-    plt.show()
+    pass
 
 
 # setup(start_date, total_time, time_step_size)s
-setup('16.08.2005', 2 * u.day, 1 * u.hour)
+setup('16.08.2005', 1 * u.year, 1 * u.day)
