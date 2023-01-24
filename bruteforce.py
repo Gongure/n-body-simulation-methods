@@ -38,8 +38,8 @@ def julian_date(date):
 def fetch_data(date):
 
     # Define a list of objects to retrieve data for
-    objects = [{'name': 'Sun', 'mass': 1.989e30 * u.kg, 'id': '10'},  {'name': 'Mercury', 'mass': 3.3022e23 * u.kg, 'id': '199'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299'},  {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'id': '399'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499'},
-               {'name': 'Jupiter', 'mass': 1.8986e27 * u.kg, 'id': '599'},  {'name': 'Saturn', 'mass': 5.6846e26 * u.kg, 'id': '699'},  {'name': 'Uranus', 'mass': 8.6810e25 * u.kg, 'id': '799'},  {'name': 'Neptune', 'mass': 1.0243e26 * u.kg, 'id': '899'},  {'name': 'Pluto', 'mass': 1.30900e22 * u.kg, 'id': '999'}]
+    objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299'},  {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'id': '399'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499'},
+               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699'},  {'name': 'Uranus', 'mass': 8.6810e25 * u.kg, 'id': '799'},  {'name': 'Neptune', 'mass': 1.0243e26 * u.kg, 'id': '899'},  {'name': 'Pluto', 'mass': 1.30900e22 * u.kg, 'id': '999'}]
 
     # Initialize an empty list to store the data
     data = []
@@ -124,8 +124,6 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
                     # Calculate the resultant force
                     resultingFrorce += force * direction
-                    print(str(body['name'][0] + " und " +
-                          other_body['name'][0] + str(force)))
 
             # Calculate the acceleration of the body
             acceleration = resultingFrorce / body['mass']
@@ -140,6 +138,9 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
         results.append(updated_conditions)
 
+        print(str(i) + ' / ' +
+              str(time_steps))
+
     animate(results)
 
 
@@ -148,10 +149,7 @@ def animate(results):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # Set the axis limits based on the bounds of the solar system
-    ax.set_xlim(-5e+11, 5e+11)
-    ax.set_ylim(-5e+11, 5e+11)
-    ax.set_zlim(-5e+11, 5e+11)
+    fig.set_size_inches(7, 6)
 
     # Create a list of scatter plots for each body
     plots = []
