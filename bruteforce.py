@@ -89,6 +89,12 @@ def simulate(time_steps, time_step_size, initial_conditions):
     # Setup the initial conditions
     current_conditions = initial_conditions
 
+    for body in current_conditions:
+        distanceToSun = np.linalg.norm(
+            body['position'][-1] - current_conditions[0]['position'][-1])
+
+        print(body['name'] + " : " + str(distanceToSun))
+
     # Calculate the gravitational constant
     G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
 
@@ -127,7 +133,8 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
         for body in current_conditions:
             # Calculate the new position of the body
-            body['position'].append(body['velocity'][-1] * time_step_size)
+            body['position'].append(
+                body['position'][-1] + body['velocity'][-1] * time_step_size)
 
         print(str(i) + ' / ' +
               str(time_steps))
