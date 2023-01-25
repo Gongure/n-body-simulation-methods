@@ -61,7 +61,7 @@ def fetch_data(date):
 
         # Append the data to the list
         data.append({'name': obj['name'], 'mass': obj['mass'],
-                    'position': position, 'velocity': velocity})
+                    'position': [position], 'velocity': [velocity]})
 
     """
     # Print the data in a more readable format
@@ -97,9 +97,42 @@ def simulate(time_steps, time_step_size, initial_conditions):
     # Iterate over the time steps
     for i in range(time_steps):
 
-        updated_conditions = []
+        for body in current_conditions:
 
-        # Iterate over the bodies
+            resultingForce = np.array([0, 0, 0]) * u.N
+
+            for other_body in current_conditions:
+                if body['name'] != other_body['name']:
+                    # Calculate the connection vector between the bodies
+                    connectionVector = other_body['position'][-1] - \
+                        body['position'][-1]
+
+                    # Calculate the length of the connection vector
+                    distance = np.linalg.norm(connectionVector)
+
+                    # Normalize the connection vector
+                    direction = connectionVector / distance
+
+                    # Calculate the gravitational force between the bodies
+                    force = G * (body['mass'] *
+                                 other_body['mass']) / (distance**2)
+
+                    # Calculate the resultant force
+                    resultingForce += force * direction
+
+            # Calculate the acceleration of the body
+            acceleration = resultingForce / body['mass']
+
+            # Calculate the new velocity of the body
+            body['velocity'].append(
+                body['velocity'][-1] + (acceleration * time_step_size))
+
+        for body in current_conditions:
+            # Calculate the new position of the body
+            body['position'].append(body['velocity'][-1] * time_step_size)
+
+        '''
+            # Iterate over the bodies
         for j, body in enumerate(current_conditions):
 
             # Initialize the resultant gravitational force in Newtons
@@ -136,7 +169,8 @@ def simulate(time_steps, time_step_size, initial_conditions):
             body['position'] += (body['velocity'] * time_step_size)
             updated_conditions.append(body)
 
-        results.append(updated_conditions)
+        '''
+        results.append(current_conditions)
 
         print(str(i) + ' / ' +
               str(time_steps))
@@ -154,5 +188,5 @@ def animate(results):
     pass
 
 
-# setup(start_date, total_time, time_step_size)s
+# setup(start_date, total_time, time_step_size)
 setup('16.08.2005', 1 * u.year, 1 * u.day)
