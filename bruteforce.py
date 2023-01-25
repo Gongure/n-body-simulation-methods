@@ -85,8 +85,6 @@ def setup(start_date, total_time, time_step_size):
 
 
 def simulate(time_steps, time_step_size, initial_conditions):
-    # Initialize a list to store the results of the simulation
-    results = []
 
     # Setup the initial conditions
     current_conditions = initial_conditions
@@ -131,57 +129,17 @@ def simulate(time_steps, time_step_size, initial_conditions):
             # Calculate the new position of the body
             body['position'].append(body['velocity'][-1] * time_step_size)
 
-        '''
-            # Iterate over the bodies
-        for j, body in enumerate(current_conditions):
-
-            # Initialize the resultant gravitational force in Newtons
-            resultingFrorce = np.array([0, 0, 0]) * u.N
-
-            # Iterate over the other bodies
-            for k, other_body in enumerate(current_conditions):
-                if j != k:
-                    # Calculate the connection vector between the bodies
-                    connectionVector = other_body['position'] - \
-                        body['position']
-
-                    # Calculate the length of the connection vector
-                    distance = np.linalg.norm(connectionVector)
-
-                    # Normalize the connection vector
-                    direction = connectionVector / distance
-
-                    # Calculate the gravitational force between the bodies
-                    force = G * (body['mass'] *
-                                 other_body['mass']) / (distance**2)
-
-                    # Calculate the resultant force
-                    resultingFrorce += force * direction
-
-            # Calculate the acceleration of the body
-            acceleration = resultingFrorce / body['mass']
-
-            # Calculate the new velocity of the body
-            body['velocity'] += (acceleration * time_step_size)
-
-        for j, body in enumerate(current_conditions):
-            # Calculate the new position of the body
-            body['position'] += (body['velocity'] * time_step_size)
-            updated_conditions.append(body)
-
-        '''
-        results.append(current_conditions)
-
         print(str(i) + ' / ' +
               str(time_steps))
 
     # For debugging purposes, print the distance between every planet to the sun
-    for i, body in enumerate(results[0]):
-        if body['name'] != 'Sun':
-            print(body['name'] + ' to Sun: ' + str(np.linalg.norm(
-                results[0][i]['position'] - results[0][0]['position'])))
+    for body in current_conditions:
+        distanceToSun = np.linalg.norm(
+            body['position'][-1] - current_conditions[0]['position'][-1])
 
-    animate(results)
+        print(body['name'] + " : " + str(distanceToSun))
+
+    # animate(results)
 
 
 def animate(results):
