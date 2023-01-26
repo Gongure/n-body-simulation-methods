@@ -48,16 +48,19 @@ def fetch_data(date):
     for obj in objects:
         # Query the JPL Horizons database using Astroquery
 
+        # id_type='majorbody' ; get_raw_response=True
         result = Horizons(
             id=obj['id'], location='500@10', epochs=date).vectors()
+
+        print(result)
 
         # Extract the position and velocity data from the result and convert to astropy units
         # Turn the data into a numpy array
         velocity = np.array([result['vx'][0], result['vy']
-                            [0], result['vz'][0]]) * u.km/u.s
+                            [0], result['vz'][0]]) * u.au/u.day
 
         position = np.array(
-            [result['x'][0], result['y'][0], result['z'][0]]) * u.km
+            [result['x'][0], result['y'][0], result['z'][0]]) * u.au
 
         # Append the data to the list
         data.append({'name': obj['name'], 'mass': obj['mass'],
