@@ -1,65 +1,46 @@
-"""
-A simple example of an animated plot... In 3D!
-"""
 import numpy as np
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 
+# Fixing random state for reproducibility
+np.random.seed(19680801)
 
-def Gen_RandLine(length, dims=2):
-    """
     Create a line using a random walk algorithm
 
-    length is the number of points for the line.
-    dims is the number of dimensions the line has.
-    """
-    lineData = np.empty((dims, length))
-    lineData[:, 0] = np.random.rand(dims)
-    for index in range(1, length):
-        # scaling the random numbers by 0.1 so
-        # movement is small compared to position.
-        # subtraction by 0.5 is to change the range to [-0.5, 0.5]
-        # to allow a line to move backwards.
-        step = ((np.random.rand(dims) - 0.5) * 0.1)
-        lineData[:, index] = lineData[:, index-1] + step
-
-    return lineData
+def random_walk(num_steps, max_step=0.05):
+    """Return a 3D random walk as (num_steps, 3) array."""
+    start_pos = np.random.random(3)
+    steps = np.random.uniform(-max_step, max_step, size=(num_steps, 3))
+    walk = start_pos + np.cumsum(steps, axis=0)
+    return walk
 
 
-def update_lines(num, dataLines, lines):
-    for line, data in zip(lines, dataLines):
+def update_lines(num, walks, lines):
+    for line, walk in zip(lines, walks):
         # NOTE: there is no .set_data() for 3 dim data...
-        line.set_data(data[0:2, :num])
-        line.set_3d_properties(data[2, :num])
+        line.set_data(walk[:num, :2].T)
+        line.set_3d_properties(walk[:num, 2])
     return lines
 
 
+# Data: 40 random walks as (num_steps, 3) arrays
+num_steps = 30
+walks = [random_walk(num_steps) for index in range(40)]
+
 # Attaching 3D axis to the figure
 fig = plt.figure()
-ax = p3.Axes3D(fig)
+ax = fig.add_subplot(projection="3d")
 
-# Fifty lines of random 3-D lines
-data = [Gen_RandLine(25, 3) for index in range(50)]
-
-# Creating fifty line objects.
-# NOTE: Can't pass empty arrays into 3d version of plot()
-lines = [ax.plot(dat[0, 0:1], dat[1, 0:1], dat[2, 0:1])[0] for dat in data]
+# Create lines initially without data
+lines = [ax.plot([], [], [])[0] for _ in walks]
 
 # Setting the axes properties
-ax.set_xlim3d([0.0, 1.0])
-ax.set_xlabel('X')
-
-ax.set_ylim3d([0.0, 1.0])
-ax.set_ylabel('Y')
-
-ax.set_zlim3d([0.0, 1.0])
-ax.set_zlabel('Z')
-
-ax.set_title('3D Test')
+ax.set(xlim3d=(0, 1), xlabel='X')
+ax.set(ylim3d=(0, 1), ylabel='Y')
+ax.set(zlim3d=(0, 1), zlabel='Z')
 
 # Creating the Animation object
-line_ani = animation.FuncAnimation(fig, update_lines, 25, fargs=(data, lines),
-                                   interval=50, blit=False)
+ani = animation.FuncAnimation(
+    fig, update_lines, num_steps, fargs=(walks, lines), interval=100)
 
 plt.show()

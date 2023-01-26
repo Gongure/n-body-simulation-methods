@@ -52,8 +52,6 @@ def fetch_data(date):
         result = Horizons(
             id=obj['id'], location='500@10', epochs=date).vectors()
 
-        print(result)
-
         # Extract the position and velocity data from the result and convert to astropy units
         # Turn the data into a numpy array
         velocity = np.array([result['vx'][0], result['vy']
@@ -149,7 +147,8 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
         print(body['name'] + " : " + str(distanceToSun))
 
-    # animate(results)
+    # Animates the results
+    animate(current_conditions)
 
 
 def animate(results):
