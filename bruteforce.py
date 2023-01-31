@@ -148,12 +148,36 @@ def simulate(time_steps, time_step_size, initial_conditions):
         print(body['name'] + " : " + str(distanceToSun))
 
     # Animates the results
-    animate(current_conditions)
+    animate(current_conditions, time_steps)
 
 
-def animate(results):
-    pass
+def animate(results, time_steps):
+    # Attaching 3D axis to the figure
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="3d")
+
+    # Setting the axes properties
+    bounds = 10
+    ax.set(xlim3d=(-bounds, bounds), xlabel='X')
+    ax.set(ylim3d=(-bounds, bounds), ylabel='Y')
+    ax.set(zlim3d=(-bounds, bounds), zlabel='Z')
+
+    def update_pos(time_steps ist das richtig? Fehlermeldung ist noto enough values to unpack idk, bahnen, results):
+        for bahn in bahnen:
+            body = bahnen.index(bahn)
+
+            bahn.set_data(results[body]['position'][:time_steps][:2])
+            bahn.set_3d_properties(results[body]['position'][:time_steps][2])
+        return bahnen
+
+    bahnen = [ax.plot([], [], [])[0] for body in results]
+
+    # Creating the Animation object
+    ani = animation.FuncAnimation(
+        fig, update_pos, time_steps, fargs=(bahnen, results), interval=100)
+
+    plt.show()
 
 
 # setup(start_date, total_time, time_step_size)
-setup('16.08.2005', 1 * u.year, 1 * u.day)
+setup('16.08.2005', 0.5 * u.year, 1 * u.day)

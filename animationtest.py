@@ -5,7 +5,6 @@ import matplotlib.animation as animation
 # Fixing random state for reproducibility
 np.random.seed(19680801)
 
-    Create a line using a random walk algorithm
 
 def random_walk(num_steps, max_step=0.05):
     """Return a 3D random walk as (num_steps, 3) array."""
@@ -19,12 +18,15 @@ def update_lines(num, walks, lines):
     for line, walk in zip(lines, walks):
         # NOTE: there is no .set_data() for 3 dim data...
         line.set_data(walk[:num, :2].T)
+
         line.set_3d_properties(walk[:num, 2])
+        #print("2: " + str(walk[:num, 2]))
+
     return lines
 
 
 # Data: 40 random walks as (num_steps, 3) arrays
-num_steps = 30
+num_steps = 40
 walks = [random_walk(num_steps) for index in range(40)]
 
 # Attaching 3D axis to the figure
@@ -39,8 +41,10 @@ ax.set(xlim3d=(0, 1), xlabel='X')
 ax.set(ylim3d=(0, 1), ylabel='Y')
 ax.set(zlim3d=(0, 1), zlabel='Z')
 
+
 # Creating the Animation object
 ani = animation.FuncAnimation(
     fig, update_lines, num_steps, fargs=(walks, lines), interval=100)
+
 
 plt.show()
