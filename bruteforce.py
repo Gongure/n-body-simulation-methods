@@ -152,6 +152,12 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
 
 def animate(results, time_steps):
+
+    # remove the astronomical unit from the results
+    for body in results:
+        for i in range(len(body['position'])):
+            body['position'][i] = body['position'][i].value
+
     # Attaching 3D axis to the figure
     fig = plt.figure()
     ax = fig.add_subplot(projection="3d")
@@ -162,12 +168,12 @@ def animate(results, time_steps):
     ax.set(ylim3d=(-bounds, bounds), ylabel='Y')
     ax.set(zlim3d=(-bounds, bounds), zlabel='Z')
 
-    def update_pos(time_steps ist das richtig? Fehlermeldung ist noto enough values to unpack idk, bahnen, results):
+    def update_pos(time, bahnen, results):
         for bahn in bahnen:
             body = bahnen.index(bahn)
 
-            bahn.set_data(results[body]['position'][:time_steps][:2])
-            bahn.set_3d_properties(results[body]['position'][:time_steps][2])
+            bahn.set_data(results[body]['position'][:time][:2])
+            bahn.set_3d_properties(results[body]['position'][:time][2])
         return bahnen
 
     bahnen = [ax.plot([], [], [])[0] for body in results]
