@@ -151,7 +151,43 @@ def simulate(time_steps, time_step_size, initial_conditions):
     animate(current_conditions, time_steps)
 
 
-def animate(results, time_steps):
+def animate(current_conditions, time_steps):
+
+    for x in current_conditions:
+        for i in range(len(x['position'])):
+            x['position'][i] = x['position'][i].value
+
+    PLOT_MAX = 1
+    ARROW_LENGTH = 0.5
+
+    plt.ion()
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax = fig.add_subplot(111, projection='3d')
+    fig.suptitle("BruteForce", fontsize=12)
+
+    # Add a button in the window that can toggle a variable
+
+    ax.set_xlabel('X in AE')
+    ax.set_ylabel('Y in AE')
+    ax.set_zlabel('Z in AE')
+
+    for i in range(time_steps):
+        plt.cla()
+        for body in current_conditions:
+            ax.scatter(
+                xs=body['position'][i][0], ys=body['position'][i][1], zs=body['position'][i][2])
+            ax.text(body['position'][i][0], body['position'][i]
+                    [1], body['position'][i][2], body['name'])
+            ax.quiver(body['position'][i][0], body['position'][i][1], body['position'][i][2], body['velocity'][i][0],
+                      body['velocity'][i][1], body['velocity'][i][2], normalize=True, length=ARROW_LENGTH, color="red")
+
+            ax.scatter(xs=PLOT_MAX, ys=PLOT_MAX, zs=PLOT_MAX, alpha=0.0)
+            ax.scatter(xs=-PLOT_MAX, ys=-PLOT_MAX, zs=-PLOT_MAX, alpha=0.0)
+        plt.pause(0.001)
+
+
+def animate2(results, time_steps):
 
     # remove the astronomical unit from the results
     for body in results:
