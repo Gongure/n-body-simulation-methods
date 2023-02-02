@@ -1,10 +1,13 @@
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-from astroquery.jplhorizons import Horizons
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+from astroquery.jplhorizons import Horizons
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from matplotlib.backend_tools import ToolBase
+import matplotlib
+matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
 PLOT_MAX = 1
@@ -166,7 +169,21 @@ def animate(current_conditions, time_steps):
     ax = fig.add_subplot(111, projection='3d')
     fig.suptitle("BruteForce", fontsize=12)
 
-    # Add a button in the window that can toggle a variable
+    # VelocityVector Button
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("VelocityVector", ShowVelocityVector)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("VelocityVector"), "toolgroup")
+    global show_velocityVector
+    show_velocityVector = True
+
+    # Name Button
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("Name", ShowName)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("Name"), "toolgroup")
+    global showName
+    showName = True
 
     ax.set_xlabel('X in AE')
     ax.set_ylabel('Y in AE')
@@ -177,48 +194,36 @@ def animate(current_conditions, time_steps):
         for body in current_conditions:
             ax.scatter(
                 xs=body['position'][i][0], ys=body['position'][i][1], zs=body['position'][i][2])
-            ax.text(body['position'][i][0], body['position'][i]
-                    [1], body['position'][i][2], body['name'])
-            ax.quiver(body['position'][i][0], body['position'][i][1], body['position'][i][2], body['velocity'][i][0],
-                      body['velocity'][i][1], body['velocity'][i][2], normalize=True, length=ARROW_LENGTH, color="red")
+
+            if showName:
+                ax.text(body['position'][i][0], body['position'][i]
+                        [1], body['position'][i][2], body['name'])
+
+            if show_velocityVector:
+                ax.quiver(body['position'][i][0], body['position'][i][1], body['position'][i][2], body['velocity'][i][0],
+                          body['velocity'][i][1], body['velocity'][i][2], normalize=True, length=ARROW_LENGTH, color="red")
 
             ax.scatter(xs=PLOT_MAX, ys=PLOT_MAX, zs=PLOT_MAX, alpha=0.0)
             ax.scatter(xs=-PLOT_MAX, ys=-PLOT_MAX, zs=-PLOT_MAX, alpha=0.0)
         plt.pause(0.001)
 
 
-def animate2(results, time_steps):
+class ShowVelocityVector(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Toggle velocity vector"
 
-    # remove the astronomical unit from the results
-    for body in results:
-        for i in range(len(body['position'])):
-            body['position'][i] = body['position'][i].value
+    def trigger(self, *args, **kwargs):
+        global show_velocityVector
+        show_velocityVector = not show_velocityVector
 
-    # Attaching 3D axis to the figure
-    fig = plt.figure()
-    ax = fig.add_subplot(projection="3d")
 
-    # Setting the axes properties
-    bounds = 10
-    ax.set(xlim3d=(-bounds, bounds), xlabel='X')
-    ax.set(ylim3d=(-bounds, bounds), ylabel='Y')
-    ax.set(zlim3d=(-bounds, bounds), zlabel='Z')
+class ShowName(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Show object name"
 
-    def update_pos(time, bahnen, results):
-        for bahn in bahnen:
-            body = bahnen.index(bahn)
-
-            bahn.set_data(results[body]['position'][:time][:2])
-            bahn.set_3d_properties(results[body]['position'][:time][2])
-        return bahnen
-
-    bahnen = [ax.plot([], [], [])[0] for body in results]
-
-    # Creating the Animation object
-    ani = animation.FuncAnimation(
-        fig, update_pos, time_steps, fargs=(bahnen, results), interval=100)
-
-    plt.show()
+    def trigger(self, *args, **kwargs):
+        global showName
+        showName = not showName
 
 
 # setup(start_date, total_time, time_step_size)
