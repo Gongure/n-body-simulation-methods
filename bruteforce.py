@@ -143,15 +143,8 @@ def simulate(time_steps, time_step_size, initial_conditions):
         print(str(i) + ' / ' +
               str(time_steps))
 
-    # For debugging purposes, print the distance between every planet to the sun
-    for body in current_conditions:
-        distanceToSun = np.linalg.norm(
-            body['position'][-1] - current_conditions[0]['position'][-1])
-
-        print(body['name'] + " : " + str(distanceToSun))
-
     # Animates the results
-    animate(current_conditions, time_steps)
+    visualize_planetary_motionEndPic(current_conditions, time_steps)
 
 
 def animate(current_conditions, time_steps):
@@ -208,6 +201,32 @@ def animate(current_conditions, time_steps):
         plt.pause(0.001)
 
 
+def visualize_planetary_motionEndPic(data, time_steps):
+
+    for x in data:
+        for i in range(len(x['position'])):
+            x['position'][i] = x['position'][i].value
+
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
+
+    plt.rcParams['font.family'] = "serif"
+    plt.rcParams['font.size'] = 18
+
+    for planet in data:
+        name = planet["name"]
+        positions = planet["position"]
+
+        x = [pos[0] for pos in positions]
+        y = [pos[1] for pos in positions]
+        z = [pos[2] for pos in positions]
+
+        ax.plot3D(x, y, z, label=name)
+
+    plt.legend()
+    plt.show()
+
+
 class ShowVelocityVector(ToolBase):
     image = r"C:\Users\David\Pictures\dank memes ig"
     description = "Toggle velocity vector"
@@ -227,4 +246,4 @@ class ShowName(ToolBase):
 
 
 # setup(start_date, total_time, time_step_size)
-setup('16.08.2005', 0.5 * u.year, 1 * u.day)
+setup('16.08.2005', 3 * u.year, 1 * u.week)
