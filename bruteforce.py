@@ -6,6 +6,7 @@ from astroquery.jplhorizons import Horizons
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from matplotlib.backend_tools import ToolBase
+from matplotlib.animation import FuncAnimation
 import matplotlib
 matplotlib.rcParams["toolbar"] = "toolmanager"
 
@@ -143,15 +144,31 @@ def simulate(time_steps, time_step_size, initial_conditions):
         print(str(i) + ' / ' +
               str(time_steps))
 
+    for x in current_conditions:
+        for i in range(len(x['position'])):
+            x['position'][i] = x['position'][i].value
+
     # Animates the results
-    visualize_planetary_motionEndPic(current_conditions, time_steps)
+    animate(current_conditions, time_steps)
 
 
 def animate(current_conditions, time_steps):
 
-    for x in current_conditions:
-        for i in range(len(x['position'])):
-            x['position'][i] = x['position'][i].value
+    class ShowVelocityVector(ToolBase):
+        image = r"C:\Users\David\Pictures\dank memes ig"
+        description = "Toggle velocity vector"
+
+        def trigger(self, *args, **kwargs):
+            global show_velocityVector
+            show_velocityVector = not show_velocityVector
+
+    class ShowName(ToolBase):
+        image = r"C:\Users\David\Pictures\dank memes ig"
+        description = "Show object name"
+
+        def trigger(self, *args, **kwargs):
+            global showName
+            showName = not showName
 
     PLOT_MAX = 1
     ARROW_LENGTH = 0.5
@@ -202,16 +219,8 @@ def animate(current_conditions, time_steps):
 
 
 def visualize_planetary_motionEndPic(data, time_steps):
-
-    for x in data:
-        for i in range(len(x['position'])):
-            x['position'][i] = x['position'][i].value
-
     fig = plt.figure()
     ax = plt.axes(projection="3d")
-
-    plt.rcParams['font.family'] = "serif"
-    plt.rcParams['font.size'] = 18
 
     for planet in data:
         name = planet["name"]
@@ -227,23 +236,38 @@ def visualize_planetary_motionEndPic(data, time_steps):
     plt.show()
 
 
-class ShowVelocityVector(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
-    description = "Toggle velocity vector"
+def animate_solar_system(data, interval=50):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-    def trigger(self, *args, **kwargs):
-        global show_velocityVector
-        show_velocityVector = not show_velocityVector
+    # Keep track of the current time step
+    time_step = 0
+    max_time_step = max([len(planet['position']) for planet in data])
 
+    # Create a scatter plot for each planet
+    scatters = []
+    for planet in data:
+        scatters.append(ax.scatter([], [], [], label=planet['name']))
 
-class ShowName(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
-    description = "Show object name"
+    # Set up axis labels and limits
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
 
-    def trigger(self, *args, **kwargs):
-        global showName
-        showName = not showName
+    def update(frame):
+        nonlocal time_step
+        for i, planet in enumerate(data):
+            if time_step >= len(planet['position']):
+                continue
+            x, y, z = planet['position'][time_step]
+            scatters[i].set_offsets(np.c_[x, y, z])
+        time_step = (time_step + 1) % max_time_step
+        return scatters
+
+    anim = FuncAnimation(fig, update, frames=max_time_step, interval=interval)
+    #anim.save('solar_system.gif', writer='imagemagick')
+    plt.show()
 
 
 # setup(start_date, total_time, time_step_size)
-setup('16.08.2005', 3 * u.year, 1 * u.week)
+setup('16.08.2005', 5 * u.year, 5 * u.day)
