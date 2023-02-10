@@ -11,8 +11,6 @@ import matplotlib
 matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
-PLOT_MAX = 1
-
 # Julian date calculator
 # Input is one string in the format DD.MM.YYYY
 # Output is a string in the format '2453599.01542'
@@ -43,9 +41,9 @@ def julian_date(date):
 def fetch_data(date):
 
     # Define a list of objects to retrieve data for
-    objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299'},  {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'id': '399'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499'},
-               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699'}]
-    # Initialize an empty list to store the data
+    objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10', 'color': 'yellow'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199', 'color': 'gray'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299', 'color': 'yellow'},  {'name': 'Earth', 'mass': 5.97237e24 *
+                                                                                                                                                                                                                                                        u.kg, 'id': '399', 'color': 'blue'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499', 'color': 'red'},               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599', 'color': 'orange'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699', 'color': 'yellow'}]
+
     data = []
 
     # Iterate over the objects
@@ -53,8 +51,10 @@ def fetch_data(date):
         # Query the JPL Horizons database using Astroquery
 
         # id_type='majorbody' ; get_raw_response=True
+
+        epochs = {'start': '2010-01-01', 'stop': '2010-03-01', 'step': '10d'}
         result = Horizons(
-            id=obj['id'], location='500@10', epochs=date).vectors()
+            id=obj['id'], location='500@10', epochs={'start': '2010-01-01', 'stop': '2010-03-01', 'step': '10d'}).vectors()
 
         # Extract the position and velocity data from the result and convert to astropy units
         # Turn the data into a numpy array
@@ -66,7 +66,7 @@ def fetch_data(date):
 
         # Append the data to the list
         data.append({'name': obj['name'], 'mass': obj['mass'],
-                    'position': [position], 'velocity': [velocity]})
+                    'position': [position], 'velocity': [velocity], 'color': obj['color']})
 
     """
     # Print the data in a more readable format
@@ -80,25 +80,54 @@ def fetch_data(date):
     return data
 
 
+def get_end_date(start_date, total_time):
+    total_time = total_time.value
+    start_date = start_date.split('.')
+    start_date[2] = str(int(start_date[2]) + int(total_time))
+    # reverse the split
+    start_date = '.'.join(start_date)
+
+    return julian_date(start_date)
+
+
+def evaluate_results(simulation_results, end_conditions):
+    for i in range(len(simulation_results)):
+        print(simulation_results[i]['name'])
+        # print(simulation_results[i]['position'][-1])
+        # print(end_conditions[i]['position'])
+        a = simulation_results[i]['position'][-1]
+        b = end_conditions[i]['position'][0]
+        ab = a - b
+
+        distance = np.linalg.norm(ab)
+
+        print(distance)
+        print('')
+
+
 def setup(start_date, total_time, time_step_size):
+    end_date = get_end_date(start_date, total_time)
+    end_conditions = fetch_data(end_date)
+
     start_date = julian_date(start_date)
     time_steps = int(total_time / time_step_size)
 
     inital_conditions = fetch_data(start_date)
 
-    simulate(time_steps, time_step_size, inital_conditions)
+    simulation_results = simulate(
+        time_steps, time_step_size, inital_conditions)
+
+    evaluate_results(simulation_results, end_conditions)
+
+    # Animates the results
+    #animate(simulation_results, time_steps)
+    visualize_planetary_motionEndPic(simulation_results, time_steps)
 
 
 def simulate(time_steps, time_step_size, initial_conditions):
 
     # Setup the initial conditions
     current_conditions = initial_conditions
-
-    for body in current_conditions:
-        distanceToSun = np.linalg.norm(
-            body['position'][-1] - current_conditions[0]['position'][-1])
-
-        print(body['name'] + " : " + str(distanceToSun))
 
     # Calculate the gravitational constant
     G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
@@ -144,15 +173,13 @@ def simulate(time_steps, time_step_size, initial_conditions):
         print(str(i) + ' / ' +
               str(time_steps))
 
-    for x in current_conditions:
+    return current_conditions
+
+
+def animate(data, time_steps):
+    for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
-
-    # Animates the results
-    animate(current_conditions, time_steps)
-
-
-def animate(current_conditions, time_steps):
 
     class ShowVelocityVector(ToolBase):
         image = r"C:\Users\David\Pictures\dank memes ig"
@@ -170,7 +197,7 @@ def animate(current_conditions, time_steps):
             global showName
             showName = not showName
 
-    PLOT_MAX = 1
+    PLOT_MAX = 5
     ARROW_LENGTH = 0.5
 
     plt.ion()
@@ -195,15 +222,38 @@ def animate(current_conditions, time_steps):
     global showName
     showName = True
 
-    ax.set_xlabel('X in AE')
-    ax.set_ylabel('Y in AE')
-    ax.set_zlabel('Z in AE')
-
     for i in range(time_steps):
         plt.cla()
-        for body in current_conditions:
+
+        ax.set_xlabel('X in AE')
+        ax.set_ylabel('Y in AE')
+        ax.set_zlabel('Z in AE')
+
+        # Set the limits of the plot
+        ax.set_xlim(-PLOT_MAX, PLOT_MAX)
+        ax.set_ylim(-PLOT_MAX, PLOT_MAX)
+        ax.set_zlim(-PLOT_MAX, PLOT_MAX)
+
+        current_positions_x = [body['position'][i][0] for body in data]
+        current_positions_y = [body['position'][i][1] for body in data]
+        current_positions_z = [body['position'][i][2] for body in data]
+        names = [body['name'] for body in data]
+        colors = [body['color'] for body in data]
+
+        ax.scatter(
+            xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
+
+        """
+        if showName:
+            ax.text(current_positions_x, current_positions_y,
+                    current_positions_z, names)
+        """
+
+        """
+        for body in data:
+
             ax.scatter(
-                xs=body['position'][i][0], ys=body['position'][i][1], zs=body['position'][i][2])
+                xs=['position'][i][0], ys=body['position'][i][1], zs=body['position'][i][2])
 
             if showName:
                 ax.text(body['position'][i][0], body['position'][i]
@@ -215,12 +265,23 @@ def animate(current_conditions, time_steps):
 
             ax.scatter(xs=PLOT_MAX, ys=PLOT_MAX, zs=PLOT_MAX, alpha=0.0)
             ax.scatter(xs=-PLOT_MAX, ys=-PLOT_MAX, zs=-PLOT_MAX, alpha=0.0)
+        """
         plt.pause(0.001)
 
 
 def visualize_planetary_motionEndPic(data, time_steps):
+    for x in data:
+        for i in range(len(x['position'])):
+            x['position'][i] = x['position'][i].value
+
     fig = plt.figure()
     ax = plt.axes(projection="3d")
+
+    PLOT_MAX = 5
+
+    ax.set_xlim(-PLOT_MAX, PLOT_MAX)
+    ax.set_ylim(-PLOT_MAX, PLOT_MAX)
+    ax.set_zlim(-PLOT_MAX, PLOT_MAX)
 
     for planet in data:
         name = planet["name"]
@@ -237,6 +298,10 @@ def visualize_planetary_motionEndPic(data, time_steps):
 
 
 def animate_solar_system(data, interval=50):
+    for x in data:
+        for i in range(len(x['position'])):
+            x['position'][i] = x['position'][i].value
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -265,9 +330,9 @@ def animate_solar_system(data, interval=50):
         return scatters
 
     anim = FuncAnimation(fig, update, frames=max_time_step, interval=interval)
-    #anim.save('solar_system.gif', writer='imagemagick')
+    # anim.save('solar_system.gif', writer='imagemagick')
     plt.show()
 
 
-# setup(start_date, total_time, time_step_size)
-setup('16.08.2005', 5 * u.year, 5 * u.day)
+# setup(start_date, total_time in years, time_step_size)
+setup('16.08.2005', 3 * u.year, 5 * u.day)
