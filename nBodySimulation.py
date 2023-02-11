@@ -1,4 +1,4 @@
-
+from bruteforcealgorithm import *
 from utilities import *
 
 
@@ -12,10 +12,26 @@ from astropy import units as u
 from matplotlib.backend_tools import ToolBase
 from matplotlib.animation import FuncAnimation
 import matplotlib
-matplotlib.rcParams["toolbar"] = "toolmanager"
+#matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
-def setup(start_date, end_date, time_step_size):
+def setup(start_date, total_time, time_step_size):
+    start_julian_date = julian_date(start_date)
+    # print(start_julian_date)
+    end_julian_date = str(float(start_julian_date) +
+                          (total_time.to(u.day)).value)
+    # print(end_julian_date)
+
+    inital_conditions = fetch_data(start_julian_date)
+    final_conditions = fetch_data(end_julian_date)
+
+    time_steps = int(total_time / time_step_size)
+
+    brute_force_simulation_results = bruteForceSimulation(
+        time_steps, time_step_size, inital_conditions)
+
+    print(evaluate_results(brute_force_simulation_results, final_conditions))
+
     """"
     end_date = get_end_date(start_date, total_time)
     end_conditions = fetch_data(end_date)
@@ -37,5 +53,5 @@ def setup(start_date, end_date, time_step_size):
     """
 
 
-# setup(start_date, end_date, time_step_size)
-setup('16.08.2005', '16.08.2008', 1 * u.day)
+# setup(start_date, total_time in years, time_step_size)
+setup('16.08.2005', 1 * u.year, 1 * u.day)

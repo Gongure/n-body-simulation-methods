@@ -52,7 +52,7 @@ def fetch_data(date):
 
         # id_type='majorbody' ; get_raw_response=True
 
-        epochs = {'start': '2010-01-01', 'stop': '2010-03-01', 'step': '10d'}
+        #epochs = {'start': '2010-01-01', 'stop': '2010-03-01', 'step': '10d'}
         result = Horizons(
             id=obj['id'], location='500@10', epochs={'start': '2010-01-01', 'stop': '2010-03-01', 'step': '10d'}).vectors()
 
@@ -120,8 +120,8 @@ def setup(start_date, total_time, time_step_size):
     evaluate_results(simulation_results, end_conditions)
 
     # Animates the results
-    #animate(simulation_results, time_steps)
-    visualize_planetary_motionEndPic(simulation_results, time_steps)
+    #visualize_planetary_motionEndPic(simulation_results, time_steps)
+    animate(simulation_results, time_steps)
 
 
 def simulate(time_steps, time_step_size, initial_conditions):
@@ -181,22 +181,6 @@ def animate(data, time_steps):
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
 
-    class ShowVelocityVector(ToolBase):
-        image = r"C:\Users\David\Pictures\dank memes ig"
-        description = "Toggle velocity vector"
-
-        def trigger(self, *args, **kwargs):
-            global show_velocityVector
-            show_velocityVector = not show_velocityVector
-
-    class ShowName(ToolBase):
-        image = r"C:\Users\David\Pictures\dank memes ig"
-        description = "Show object name"
-
-        def trigger(self, *args, **kwargs):
-            global showName
-            showName = not showName
-
     PLOT_MAX = 5
     ARROW_LENGTH = 0.5
 
@@ -206,21 +190,7 @@ def animate(data, time_steps):
     ax = fig.add_subplot(111, projection='3d')
     fig.suptitle("BruteForce", fontsize=12)
 
-    # VelocityVector Button
-    tm = fig.canvas.manager.toolmanager
-    tm.add_tool("VelocityVector", ShowVelocityVector)
-    fig.canvas.manager.toolbar.add_tool(
-        tm.get_tool("VelocityVector"), "toolgroup")
-    global show_velocityVector
-    show_velocityVector = True
-
-    # Name Button
-    tm = fig.canvas.manager.toolmanager
-    tm.add_tool("Name", ShowName)
-    fig.canvas.manager.toolbar.add_tool(
-        tm.get_tool("Name"), "toolgroup")
-    global showName
-    showName = True
+    colors = [body['color'] for body in data]
 
     for i in range(time_steps):
         plt.cla()
@@ -234,11 +204,14 @@ def animate(data, time_steps):
         ax.set_ylim(-PLOT_MAX, PLOT_MAX)
         ax.set_zlim(-PLOT_MAX, PLOT_MAX)
 
-        current_positions_x = [body['position'][i][0] for body in data]
-        current_positions_y = [body['position'][i][1] for body in data]
-        current_positions_z = [body['position'][i][2] for body in data]
-        names = [body['name'] for body in data]
-        colors = [body['color'] for body in data]
+        current_positions_x = []
+        current_positions_y = []
+        current_positions_z = []
+
+        for body in data:
+            current_positions_x += [body['position'][i][0]]
+            current_positions_y += [body['position'][i][1]]
+            current_positions_z += [body['position'][i][2]]
 
         ax.scatter(
             xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
@@ -335,4 +308,4 @@ def animate_solar_system(data, interval=50):
 
 
 # setup(start_date, total_time in years, time_step_size)
-setup('16.08.2005', 3 * u.year, 5 * u.day)
+setup('16.08.2005', 3 * u.year, 6 * u.day)

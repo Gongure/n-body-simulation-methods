@@ -1,3 +1,68 @@
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+from astroquery.jplhorizons import Horizons
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from matplotlib.backend_tools import ToolBase
+from matplotlib.animation import FuncAnimation
+import matplotlib
+matplotlib.rcParams["toolbar"] = "toolmanager"
+
+
+def evaluate_results(simulation_results, end_conditions):
+
+    # array of distances
+    distances = []
+
+    for i in range(len(simulation_results)):
+        print(simulation_results[i]['name'])
+        # print(simulation_results[i]['position'][-1])
+        # print(end_conditions[i]['position'])
+        a = simulation_results[i]['position'][-1]
+        b = end_conditions[i]['position'][0]
+        ab = a - b
+
+        distance = np.linalg.norm(ab)
+
+        distances.append(distance)
+
+        print(distance)
+        print('')
+    return distances
+
+
+def fetch_data(date):
+
+    # Define a list of objects to retrieve data for
+    objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10', 'color': 'yellow'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199', 'color': 'gray'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299', 'color': 'yellow'},  {'name': 'Earth', 'mass': 5.97237e24 *
+                                                                                                                                                                                                                                                        u.kg, 'id': '399', 'color': 'blue'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499', 'color': 'red'},               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599', 'color': 'orange'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699', 'color': 'yellow'}]
+
+    data = []
+
+    # Iterate over the objects
+    for obj in objects:
+        # Query the JPL Horizons database using Astroquery
+
+        # id_type='majorbody' ; get_raw_response=True
+        result = Horizons(
+            id=obj['id'], location='500@10', epochs=date).vectors()
+
+        # Extract the position and velocity data from the result and convert to astropy units
+        # Turn the data into a numpy array
+        velocity = np.array([result['vx'][0], result['vy']
+                            [0], result['vz'][0]]) * u.au/u.day
+
+        position = np.array(
+            [result['x'][0], result['y'][0], result['z'][0]]) * u.au
+
+        # Append the data to the list
+        data.append({'name': obj['name'], 'mass': obj['mass'],
+                    'position': [position], 'velocity': [velocity], 'color': obj['color']})
+    return data
+
+
 def julian_date(date):
     date = date.split('.')
     day = int(date[0])
