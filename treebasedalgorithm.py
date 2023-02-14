@@ -25,47 +25,43 @@ class Node:
     velocity = np.array([0, 0, 0]) * u.au / u.day
 
 
-def quad_insert(root, position, mass):
+def oct_insert(root, position, mass):  # octree
     if root.mass is None:  # when the root is empty, add the first particle
-        root.mass = m
-        root.center_of_mass = [x, y]
+        root.mass = mass
+        root.center_of_mass = position
         return
     elif root.children is None:
-        root.children = [None, None, None, None]
-        old_quadrant = quadrant_of_particle(
-            root.bbox, root.center_of_mass[0], root.center_of_mass[1])
+        root.children = [None, None, None, None, None, None, None, None]
+        old_quadrant = octant_of_particle(
+            root.bbox, root.center_of_mass)
         if root.children[old_quadrant] is None:
             # can root.children[old_quadrant] not be None?
             # if root.children is None, then root.children[old_quadrant] is Non
             # the if statement is redundant
             root.children[old_quadrant] = Node()
-            root.children[old_quadrant].bbox = quadrant_bbox(
+            root.children[old_quadrant].bbox = octant_bbox(
                 root.bbox, old_quadrant)
-        quad_insert(root.children[old_quadrant],
-                    root.center_of_mass[0], root.center_of_mass[1], root.mass)
-        new_quadrant = quadrant_of_particle(root.bbox, x, y)
+        oct_insert(root.children[old_quadrant],
+                   root.center_of_mass, root.mass)
+        new_quadrant = octant_of_particle(root.bbox, position)
         if root.children[new_quadrant] is None:
             root.children[new_quadrant] = Node()
-            root.children[new_quadrant].bbox = quadrant_bbox(
+            root.children[new_quadrant].bbox = octant_bbox(
                 root.bbox, new_quadrant)
-        quad_insert(root.children[new_quadrant], x, y, m)
-        root.center_of_mass[0] = (
-            root.center_of_mass[0]*root.mass + x*m) / (root.mass + m)
-        root.center_of_mass[1] = (
-            root.center_of_mass[1]*root.mass + y*m) / (root.mass + m)
-        root.mass = root.mass + m
+        oct_insert(root.children[new_quadrant], position, mass)
+        root.center_of_mass = (root.center_of_mass *
+                               root.mass + position * mass) / (root.mass + mass)
+        root.mass = root.mass + mass
     else:
-        new_quadrant = quadrant_of_particle(root.bbox, x, y)
+        new_quadrant = octant_of_particle(root.bbox, position)
         if root.children[new_quadrant] is None:
             root.children[new_quadrant] = Node()
-            root.children[new_quadrant].bbox = quadrant_bbox(
+            root.children[new_quadrant].bbox = octant_bbox(
                 root.bbox, new_quadrant)
-        quad_insert(root.children[new_quadrant], x, y, m)
-        root.center_of_mass[0] = (
-            root.center_of_mass[0]*root.mass + x*m) / (root.mass + m)
-        root.center_of_mass[1] = (
-            root.center_of_mass[1]*root.mass + y*m) / (root.mass + m)
-        root.mass = root.mass + m
+        oct_insert(root.children[new_quadrant], position, mass)
+        root.center_of_mass = (root.center_of_mass *
+                               root.mass + position * mass) / (root.mass + mass)
+        root.mass = root.mass + mass
 
 
 def display(root):
@@ -87,64 +83,56 @@ def display(root):
 
 
 def integrate(time_steps, time_step_size, bodies):
+    results = bodies
     for i in range(time_steps):
         particles_force = {}
         root = Node()
         root.center_of_mass = []
         root.bbox = find_root_bbox(bodies)
         for body in bodies:
-            quad_insert(root, body['position'], body['mass'])
+            oct_insert(root, body['position'], body['mass'])
         for body in bodies:
             total_force = compute_force(
                 root, body['position'], body['mass'])
-            particles_force[bodies[i][0]] = (total_fx, total_fy)
-        for i in range(n):
-            fx, fy = particles_force[bodies[i][0]]
-            bodies[i][5] += fx / bodies[i][2] * timestep
-            bodies[i][6] += fy / bodies[i][2] * timestep
+            particles_force[body['name']] = total_force
+        for body in bodies:
+            force = particles_force[body['name']]
+            body['velocity'] += force / body['mass'] * time_step_size
 
-            bodies[i][3] += bodies[i][5] * timestep
-            bodies[i][4] += bodies[i][6] * timestep
-            sim.scatter(bodies[i][3], bodies[i][4])
-    display(root)
-    quadt.scatter(root.center_of_mass[0],
-                  root.center_of_mass[1], c='red', marker='x')
+            body['position'] += body['velocity'] * time_step_size
+            n = bodies.index(body)
+            results[n]['position'].append(body['position'])
+            results[n]['velocity'].append(body['velocity'])
+
+    return results
 
 
-def compute_force(root, x, y, m):
+def compute_force(root, position, m):
     if root.mass is None:
-        return 0, 0
-    if root.center_of_mass[0] == x and root.center_of_mass[1] == y and root.mass == m:
-        return 0, 0
-    d = root.bbox[1]-root.bbox[0]
-    r = distance(x, y, root.center_of_mass[0], root.center_of_mass[1])
+        return np.array([0, 0, 0]) * u.au / u.day
+    if root.position == position and root.mass == m:
+        return np.array([0, 0, 0]) * u.au / u.day
+    d = root.bbox[1] - root.bbox[0]
+    r = (position - root.center_of_mass).linalg.norm()
+
     if d/r < theta or root.children is None:
-        return force(m, x, y, root.mass, root.center_of_mass[0], root.center_of_mass[1])
+        return force(m, position, root.mass, root.center_of_mass)
     else:
-        fx = 0.0
-        fy = 0.0
-        for i in range(4):
+        f = np.array([0, 0, 0]) * u.au / u.day
+        for i in range(8):
             if root.children[i] is not None:
-                fx += compute_force(root.children[i], x, y, m)[0]
-                fy += compute_force(root.children[i], x, y, m)[1]
-        return fx, fy
+                f += compute_force(root.children[i], position, m)
+        return f
 
 ################################################# SUPPORTING FUNCTION ##############################################################
 
 
-def force(m, x, y, mcm, xcm, ycm):
-    d = distance(x, y, xcm, ycm)
-    f = G*m*mcm/(d**2)
-    dx = xcm - x
-    dy = ycm - y
-    angle = math.atan2(dy, dx)
-    fx = math.cos(angle) * f
-    fy = math.sin(angle) * f
-    return fx, fy
+def force(m, position, mcm, pcm):
+    d = (position - pcm).linalg.norm()
+    direction = (position - pcm) / d
+    f = G * m * mcm / (d**2)
 
-
-def distance(x1, y1, x2, y2):
-    return math.sqrt((x2-x1)**2+(y2-y1)**2)
+    return f * direction
 
 
 def plt_node(x, y, width):
@@ -156,56 +144,105 @@ def find_root_bbox(array):
     """
     if len(array) == 0 or len(array) == 1:
         return None
-    xmin, xmax, ymin, ymax = array[0][3], array[0][3], array[0][4], array[0][4]
-    for i in range(len(array)):
-        if array[i][3] > xmax:
-            xmax = array[i][3]
-        if array[i][3] < xmin:
-            xmin = array[i][3]
-        if array[i][4] > ymax:
-            ymax = array[i][4]
-        if array[i][4] < ymin:
-            ymin = array[i][4]
-    if xmax - xmin == ymax - ymin:
-        return xmin, xmax, ymin, ymax
-    elif xmax - xmin > ymax - ymin:
-        return xmin, xmax, ymin, ymax+(xmax-xmin-ymax+ymin)
+
+    # create a search algorithm to find the min and max of x, y, and z stored in the array as a np.array([x,y,z]
+    # (hint: use np.min and np.max)
+    xmin, xmax, ymin, ymax, zmin, zmax = array[0]['position'][0], array[0]['position'][0], array[
+        0]['position'][1], array[0]['position'][1], array[0]['position'][2], array[0]['position'][2]
+
+    for body in array:
+        if body['position'][0] > xmax:
+            xmax = body['position'][0]
+        if body['position'][0] < xmin:
+            xmin = body['position'][0]
+        if body['position'][1] > ymax:
+            ymax = body['position'][1]
+        if body['position'][1] < ymin:
+            ymin = body['position'][1]
+        if body['position'][2] > zmax:
+            zmax = body['position'][2]
+        if body['position'][2] < zmin:
+            zmin = body['position'][2]
+    # make sure the boundary box is a square
+    if xmax - xmin == ymax - ymin == zmax - zmin:
+        return xmin, xmax, ymin, ymax, zmin, zmax
+    elif xmax - xmin > ymax - ymin == zmax - zmin:
+        return xmin, xmax, ymin, ymax+(xmax-xmin-ymax+ymin), zmin, zmax+(xmax-xmin-zmax+zmin)
+    elif xmax - xmin == ymax - ymin > zmax - zmin:
+        return xmin, xmax+(ymax-ymin-xmax+xmin), ymin, ymax, zmin, zmax+(ymax-ymin-zmax+zmin)
+    elif xmax - xmin == zmax - zmin > ymax - ymin:
+        return xmin, xmax+(zmax-zmin-xmax+xmin), ymin, ymax, zmin, zmax
+    elif ymax - ymin == zmax - zmin > xmax - xmin:
+        return xmin, xmax, ymin, ymax+(zmax-zmin-ymax+ymin), zmin, zmax
+    elif xmax - xmin > ymax - ymin and xmax - xmin > zmax - zmin:
+        return xmin, xmax, ymin, ymax+(xmax-xmin-ymax+ymin), zmin, zmax+(xmax-xmin-zmax+zmin)
+    elif ymax - ymin > xmax - xmin and ymax - ymin > zmax - zmin:
+        return xmin, xmax+(ymax-ymin-xmax+xmin), ymin, ymax, zmin, zmax+(ymax-ymin-zmax+zmin)
     else:
-        return xmin, xmax+(ymax-ymin-xmax+xmin), ymin, ymax
+        return xmin, xmax+(zmax-zmin-xmax+xmin), ymin, ymax+(zmax-zmin-ymax+ymin), zmin, zmax
 
 
-def quadrant_of_particle(bbox, x, y):
-    """Return position of quadrant of the particle (x,y)
-    """
-    if y >= (bbox[3] + bbox[2])/2:
-        if x <= (bbox[1] + bbox[0])/2:
-            return 0
+def octant_of_particle(bbox, position):
+    # retun the octant of the particle position = np.array([x,y,z])+
+    x = position[0]
+    y = position[1]
+    z = position[2]
+
+    if z >= (bbox[5] + bbox[4])/2:
+        if y >= (bbox[3] + bbox[2])/2:
+            if x <= (bbox[1] + bbox[0])/2:
+                return 0
+            else:
+                return 1
         else:
-            return 1
+            if x >= (bbox[1] + bbox[0])/2:
+                return 2
+            else:
+                return 3
     else:
-        if x >= (bbox[1] + bbox[0])/2:
-            return 2
+        if y >= (bbox[3] + bbox[2])/2:
+            if x <= (bbox[1] + bbox[0])/2:
+                return 4
+            else:
+                return 5
         else:
-            return 3
+            if x >= (bbox[1] + bbox[0])/2:
+                return 6
+            else:
+                return 7
 
 
-def quadrant_bbox(bbox, quadrant):
-    """Return the coordinate of the quadrant
+def octant_bbox(bbox, octant):
+    """Return the coordinate of the octant
     """
     x = (bbox[0] + bbox[1]) / 2
     y = (bbox[2] + bbox[3]) / 2
-    # Quadrant 0: (xmin, x, y, ymax)
-    if quadrant == 0:
-        return bbox[0], x, y, bbox[3]
-    # Quadrant 1: (x, xmax, y, ymax)
-    elif quadrant == 1:
-        return x, bbox[1], y, bbox[3]
-    # Quadrant 2: (x, xmax, ymin, y)
-    elif quadrant == 2:
-        return x, bbox[1], bbox[2], y
-    # Quadrant 3: (xmin, x, ymin, y)
-    elif quadrant == 3:
-        return bbox[0], x, bbox[2], y
+    z = (bbox[4] + bbox[5]) / 2
+
+    # Octant 0: (xmin, x, y, ymax, zmin, z)
+    if octant == 0:
+        return bbox[0], x, y, bbox[3], bbox[4], z
+    # Octant 1: (x, xmax, y, ymax, zmin, z)
+    elif octant == 1:
+        return x, bbox[1], y, bbox[3], bbox[4], z
+    # Octant 2: (x, xmax, ymin, y, zmin, z)
+    elif octant == 2:
+        return x, bbox[1], bbox[2], y, bbox[4], z
+    # Octant 3: (xmin, x, ymin, y, zmin, z)
+    elif octant == 3:
+        return bbox[0], x, bbox[2], y, bbox[4], z
+    # Octant 4: (xmin, x, y, ymax, z, zmax)
+    elif octant == 4:
+        return bbox[0], x, y, bbox[3], z, bbox[5]
+    # Octant 5: (x, xmax, y, ymax, z, zmax)
+    elif octant == 5:
+        return x, bbox[1], y, bbox[3], z, bbox[5]
+    # Octant 6: (x, xmax, ymin, y, z, zmax)
+    elif octant == 6:
+        return x, bbox[1], bbox[2], y, z, bbox[5]
+    # Octant 7: (xmin, x, ymin, y, z, zmax)
+    elif octant == 7:
+        return bbox[0], x, bbox[2], y, z, bbox[5]
 
 
 def treeBasedAlgorithm(time_steps, time_step_size, data):
