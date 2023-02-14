@@ -11,6 +11,7 @@ import matplotlib
 
 
 def bruteForceSimulation(time_steps, time_step_size, initial_conditions):
+    # tim_step_size defines the time between each iteration
 
     # Setup the initial conditions
     current_conditions = initial_conditions

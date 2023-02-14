@@ -62,6 +62,9 @@ def fetch_data(date):
                     'position': [position], 'velocity': [velocity], 'color': obj['color']})
     return data
 
+    # summ up how the array "data" is structured. Leave out the color:
+    #data = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'position': [position], 'velocity': [velocity]}]
+
 
 def julian_date(date):
     date = date.split('.')

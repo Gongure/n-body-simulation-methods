@@ -1,5 +1,6 @@
 from bruteforcealgorithm import *
 from utilities import *
+from treebasedalgorithm import *
 
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -12,7 +13,7 @@ from astropy import units as u
 from matplotlib.backend_tools import ToolBase
 from matplotlib.animation import FuncAnimation
 import matplotlib
-#matplotlib.rcParams["toolbar"] = "toolmanager"
+# matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
 def setup(start_date, total_time, time_step_size):
@@ -27,10 +28,12 @@ def setup(start_date, total_time, time_step_size):
 
     time_steps = int(total_time / time_step_size)
 
-    brute_force_simulation_results = bruteForceSimulation(
-        time_steps, time_step_size, inital_conditions)
+    # brute_force_simulation_results = bruteForceSimulation(time_steps, time_step_size, inital_conditions)
 
-    print(evaluate_results(brute_force_simulation_results, final_conditions))
+    # tree_based_simulation_results = treeBasedSimulation(time_steps, time_step_size, inital_conditions)
+
+    # print(evaluate_results(brute_force_simulation_results, final_conditions))
+    #print(evaluate_results(tree_based_simulation_results, final_conditions))
 
     """"
     end_date = get_end_date(start_date, total_time)

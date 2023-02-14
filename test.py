@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.patches as patches
 import random
-import astropy.units as u
-
 
 theta = 0.5
 AU = (149.6e6 * 1000)     # 149.6 million km, in meters.
@@ -22,10 +20,10 @@ class Node:
     mass = None
     center_of_mass = None
     bbox = None
-    velocity = np.array([0, 0, 0]) * u.au / u.day
+    vx = vy = None
 
 
-def quad_insert(root, position, mass):
+def quad_insert(root, x, y, m):
     if root.mass is None:  # when the root is empty, add the first particle
         root.mass = m
         root.center_of_mass = [x, y]
@@ -86,17 +84,21 @@ def display(root):
         quadt.scatter(root.center_of_mass[0], root.center_of_mass[1])
 
 
-def integrate(time_steps, time_step_size, bodies):
-    for i in range(time_steps):
+def integrate(particles):
+    bodies = particles
+    n = len(bodies)
+    timestep = 24*3600  # one day
+    years = 2 * 365  # how many Earth years that simulate
+    for day in range(years):
         particles_force = {}
         root = Node()
         root.center_of_mass = []
         root.bbox = find_root_bbox(bodies)
-        for body in bodies:
-            quad_insert(root, body['position'], body['mass'])
-        for body in bodies:
-            total_force = compute_force(
-                root, body['position'], body['mass'])
+        for i in range(n):
+            quad_insert(root, bodies[i][3], bodies[i][4], bodies[i][2])
+        for i in range(n):
+            total_fx, total_fy = compute_force(
+                root, bodies[i][3], bodies[i][4], bodies[i][2])
             particles_force[bodies[i][0]] = (total_fx, total_fy)
         for i in range(n):
             fx, fy = particles_force[bodies[i][0]]
@@ -208,6 +210,30 @@ def quadrant_bbox(bbox, quadrant):
         return bbox[0], x, bbox[2], y
 
 
-def treeBasedAlgorithm(time_steps, time_step_size, data):
-    results = integrate(time_steps, time_step_size, data)
-    return results
+def data_from_file(filename, array):
+    with open(filename) as f:
+        for line in f:
+            if line[0] == '#':
+                continue
+            else:
+                name, color, m, x, y, vx, vy = line.split(',')
+                array.append([name, color, float(m), float(x)*AU,
+                             float(y)*AU, float(vx)*1000, float(vy)*1000])
+
+
+if __name__ == '__main__':
+    filename = ('solar-system.txt')
+    particles = []
+    data_from_file(filename, particles)
+    #root = Node()
+    #root.center_of_mass = []
+    #root.bbox = find_root_bbox(particles)
+    # for i in range(len(particles)):
+    #    quad_insert(root, particles[i][3], particles[i][4], particles[i][2])
+    # print 'Boundary box: ',root.bbox
+    # print 'Total mass: ',root.mass
+    # print 'Coordinate of center of mass: ',root.center_of_mass
+    #plt.scatter(root.center_of_mass[0], root.center_of_mass[1], c='r', marker='x', s=50)
+    # print 'Theta: ', theta
+    integrate(particles)
+    plt.show()
