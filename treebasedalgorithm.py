@@ -33,13 +33,9 @@ def oct_insert(root, position, mass):  # octree
         root.children = [None, None, None, None, None, None, None, None]
         old_quadrant = octant_of_particle(
             root.bbox, root.center_of_mass)
-        if root.children[old_quadrant] is None:
-            # can root.children[old_quadrant] not be None?
-            # if root.children is None, then root.children[old_quadrant] is Non
-            # the if statement is redundant
-            root.children[old_quadrant] = Node()
-            root.children[old_quadrant].bbox = octant_bbox(
-                root.bbox, old_quadrant)
+        root.children[old_quadrant] = Node()
+        root.children[old_quadrant].bbox = octant_bbox(
+            root.bbox, old_quadrant)
         oct_insert(root.children[old_quadrant],
                    root.center_of_mass, root.mass)
         new_quadrant = octant_of_particle(root.bbox, position)
@@ -92,10 +88,6 @@ def integrate(time_steps, time_step_size, bodies):
         root.bbox = find_root_bbox(bodies)
         for body in bodies:
             oct_insert(root, body['position'][-1], body['mass'])
-        for body in bodies:
-            total_force = compute_force(
-                root, body['position'][-1], body['mass'])
-            particles_force[body['name']] = total_force
         for body in bodies:
             force = particles_force[body['name']]
             acceleration = force / body['mass']
