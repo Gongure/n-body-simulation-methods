@@ -110,26 +110,6 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
             reultingForce = calculateForce(
                 root, body['position'][-1], body['mass'])
 
-            for other_body in current_conditions:
-
-                if body['name'] != other_body['name']:
-                    # Calculate the connection vector between the bodies
-                    connectionVector = other_body['position'][-1] - \
-                        body['position'][-1]
-
-                    # Calculate the length of the connection vector
-                    distance = np.linalg.norm(connectionVector)
-
-                    # Normalize the connection vector
-                    direction = connectionVector / distance
-
-                    # Calculate the gravitational force between the bodies
-                    force = G * (body['mass'] *
-                                 other_body['mass']) / (distance**2)
-
-                    # Calculate the resultant force
-                    resultingForce += force * direction
-
             # Calculate the acceleration of the body
             acceleration = resultingForce / body['mass']
 
@@ -170,5 +150,3 @@ def calculateForce(other_body_position, body_position, other_body_mass, body_mas
 
 
 def find_root_bbox(array_of_positions):
-    pass
-    #
