@@ -34,28 +34,33 @@ def insertInTree(node, body_position, body_mass):
         node.mass += body_mass
         node.center_of_mass = (node.center_of_mass * node.mass +
                                body_position * body_mass) / (node.mass + body_mass)
-        octand = get_octand(node.bbox, body_position)
-        insertInTree(node.children[octand], body_position, body_mass)
+        octant = get_octant(node.bbox, body_position)
+        insertInTree(node.children[octant], body_position, body_mass)
         return
     # If node x is an external node, say containing a body named c, then there are two bodies b and c in the same region. Subdivide the region further by creating four children. Then, recursively insert both b and c into the appropriate quadrant(s). Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion. Finally, update the center-of-mass and total mass of x.
     elif node.children is None:
-        node.children = [Node(), Node(), Node(), Node(),
-                         Node(), Node(), Node(), Node()]
+        node.children = [None, None, None, None, None, None, None, None]
 
-        # get the octand of the current node
-        old_octand = get_octand(node.bbox, node.center_of_mass)
-        # get the octand of the new body
-        new_octand = get_octand(node.bbox, body_position)
+        # get the octant of the current node
+        old_octant = get_octant(node.bbox, node.center_of_mass)
+        # get the octant of the new body
+        new_octant = get_octant(node.bbox, body_position)
 
         # update the center of mass and mass of the current node
         node.mass += body_mass
         node.center_of_mass = (node.center_of_mass * node.mass +
                                body_position * body_mass) / (node.mass + body_mass)
 
+        node.children[old_octant] = Node()
+        node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
+
+        node.children[new_octant] = Node()
+        node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
+
         # insert the old body in the appropriate quadrant
-        insertInTree(node.children[old_octand], node.center_of_mass, node.mass)
+        insertInTree(node.children[old_octant], node.center_of_mass, node.mass)
         # insert the new body in the appropriate quadrant
-        insertInTree(node.children[new_octand], body_position, body_mass)
+        insertInTree(node.children[new_octant], body_position, body_mass)
         return
 
 
@@ -150,3 +155,64 @@ def calculateForce(other_body_position, body_position, other_body_mass, body_mas
 
 
 def find_root_bbox(array_of_positions):
+    # Fin the smallest and largest x, y and z values
+    min_x = min(array_of_positions, key=lambda x: x[0])[0]
+    max_x = max(array_of_positions, key=lambda x: x[0])[0]
+    min_y = min(array_of_positions, key=lambda x: x[1])[1]
+    max_y = max(array_of_positions, key=lambda x: x[1])[1]
+    min_z = min(array_of_positions, key=lambda x: x[2])[2]
+    max_z = max(array_of_positions, key=lambda x: x[2])[2]
+
+    min = np.array([min_x, min_y, min_z])
+    max = np.array([max_x, max_y, max_z])
+
+    return [min, max]
+
+    # smallest cube boundary that contains all the bodies
+
+
+def get_octant(bbox, position):
+    min = bbox[0]
+    max = bbox[1]
+    a = 0
+    x = max[0] - min[0]
+    if position[0] > x/2:
+        a = 1
+    y = max[1] - min[1]
+    if position[1] > y/2:
+        a += 2
+    z = max[2] - min[2]
+    if position[2] > z/2:
+        a += 4
+
+    # return in 1-8
+
+
+def find_bbox(bbox, octant):
+    min = bbox[0]
+    max = bbox[1]
+
+    x = (max[0] - min[0])/2
+    y = (max[1] - min[1])/2
+    z = (max[2] - min[2])/2
+
+    center = min + np.array([x, y, z])
+
+    if octant == 0:
+        return [min, center]
+    elif octant == 1:
+        return [np.array([center[0], min[1], min[2]]), np.array([max[0], center[1], center[2]])]
+    elif octant == 2:
+        return [np.array([min[0], center[1], min[2]]), np.array([center[0], max[1], center[2]])]
+    elif octant == 3:
+        return [np.array([center[0], center[1], min[2]]), np.array([max[0], max[1], center[2]])]
+    elif octant == 4:
+        return [np.array([min[0], min[1], center[2]]), np.array([center[0], center[1], max[2]])]
+    elif octant == 5:
+        return [np.array([center[0], min[1], center[2]]), np.array([max[0], center[1], max[2]])]
+    elif octant == 6:
+        return [np.array([min[0], center[1], center[2]]), np.array([center[0], max[1], max[2]])]
+    elif octant == 7:
+        return [center, max]
+
+        # boundary of the octant cube
