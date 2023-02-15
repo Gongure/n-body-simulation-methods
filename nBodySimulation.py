@@ -28,9 +28,12 @@ def setup(start_date, total_time, time_step_size):
 
     time_steps = int(total_time / time_step_size)
 
-    # brute_force_simulation_results = bruteForceSimulation(time_steps, time_step_size, inital_conditions)
+    #brute_force_simulation_results = bruteForceSimulation(time_steps, time_step_size, inital_conditions)
 
-    # tree_based_simulation_results = treeBasedSimulation(time_steps, time_step_size, inital_conditions)
+    tree_based_simulation_results = treeBasedAlgorithm(
+        time_steps, time_step_size, inital_conditions)
+
+    print(tree_based_simulation_results)
 
     # print(evaluate_results(brute_force_simulation_results, final_conditions))
     #print(evaluate_results(tree_based_simulation_results, final_conditions))

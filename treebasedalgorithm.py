@@ -10,7 +10,7 @@ import astropy.units as u
 
 theta = 0.5
 AU = (149.6e6 * 1000)     # 149.6 million km, in meters.
-G = 6.67408e-11  # m^3 kg^-1 s^-2
+G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
 fig1 = plt.figure()
 sim = fig1.add_subplot(111, aspect='equal')
 fig2 = plt.figure()
@@ -20,7 +20,7 @@ quadt = fig2.add_subplot(111, aspect='equal')
 class Node:
     children = None
     mass = None
-    center_of_mass = None
+    center_of_mass = np.array([0, 0, 0]) * u.au
     bbox = None
     velocity = np.array([0, 0, 0]) * u.au / u.day
 
@@ -82,8 +82,17 @@ def display(root):
         quadt.scatter(root.center_of_mass[0], root.center_of_mass[1])
 
 
-def integrate(time_steps, time_step_size, bodies):
-    results = bodies
+def integrate(time_steps, time_step_size, results):
+    bodies = results
+    for body in bodies:
+        body['position'] = body['position'][0]
+        body['velocity'] = body['velocity'][0]
+
+    # do a version where results isnt overwritten
+    for i in range(len(bodies)):
+        bodies[i]['position'] =
+        bodies[i]['velocity'] = []
+
     for i in range(time_steps):
         particles_force = {}
         root = Node()
@@ -101,6 +110,7 @@ def integrate(time_steps, time_step_size, bodies):
 
             body['position'] += body['velocity'] * time_step_size
             n = bodies.index(body)
+
             results[n]['position'].append(body['position'])
             results[n]['velocity'].append(body['velocity'])
 
@@ -109,16 +119,19 @@ def integrate(time_steps, time_step_size, bodies):
 
 def compute_force(root, position, m):
     if root.mass is None:
-        return np.array([0, 0, 0]) * u.au / u.day
-    if root.position == position and root.mass == m:
-        return np.array([0, 0, 0]) * u.au / u.day
+        return np.array([0, 0, 0]) * u.N
+    if root.center_of_mass.value.all() == position.value.all() and root.mass == m:
+        return np.array([0, 0, 0]) * u.N
     d = root.bbox[1] - root.bbox[0]
-    r = (position - root.center_of_mass).linalg.norm()
+
+    r = position - root.center_of_mass
+    r = np.linalg.norm(r)
 
     if d/r < theta or root.children is None:
         return force(m, position, root.mass, root.center_of_mass)
     else:
-        f = np.array([0, 0, 0]) * u.au / u.day
+        f = np.array([0, 0, 0]) * u.N
+
         for i in range(8):
             if root.children[i] is not None:
                 f += compute_force(root.children[i], position, m)
@@ -128,11 +141,12 @@ def compute_force(root, position, m):
 
 
 def force(m, position, mcm, pcm):
-    d = (position - pcm).linalg.norm()
+    d = np.linalg.norm(position - pcm)
     direction = (position - pcm) / d
-    f = G * m * mcm / (d**2)
+    f = (G * m * mcm) / (d**2)
+    f = f * direction.value
 
-    return f * direction
+    return f
 
 
 def plt_node(x, y, width):
@@ -147,8 +161,7 @@ def find_root_bbox(array):
 
     # create a search algorithm to find the min and max of x, y, and z stored in the array as a np.array([x,y,z]
     # (hint: use np.min and np.max)
-    xmin, xmax, ymin, ymax, zmin, zmax = array[0]['position'][0], array[0]['position'][0], array[
-        0]['position'][1], array[0]['position'][1], array[0]['position'][2], array[0]['position'][2]
+    xmin = xmax = ymin = ymax = zmin = zmax = 0
 
     for body in array:
         if body['position'][0] > xmax:
