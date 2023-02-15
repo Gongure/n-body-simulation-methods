@@ -7,7 +7,6 @@ import matplotlib.patches as patches
 import random
 import astropy.units as u
 
-
 theta = 0.5
 AU = (149.6e6 * 1000)     # 149.6 million km, in meters.
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
@@ -82,38 +81,31 @@ def display(root):
         quadt.scatter(root.center_of_mass[0], root.center_of_mass[1])
 
 
-def integrate(time_steps, time_step_size, results):
-    bodies = results
-    for body in bodies:
-        body['position'] = body['position'][0]
-        body['velocity'] = body['velocity'][0]
+def integrate(time_steps, time_step_size, bodies):
+    results = bodies
 
-    # do a version where results isnt overwritten
-    for i in range(len(bodies)):
-        bodies[i]['position'] =
-        bodies[i]['velocity'] = []
-
+    # do a version where results isnt overwrittens
     for i in range(time_steps):
         particles_force = {}
         root = Node()
         root.center_of_mass = []
         root.bbox = find_root_bbox(bodies)
         for body in bodies:
-            oct_insert(root, body['position'], body['mass'])
+            oct_insert(root, body['position'][-1], body['mass'])
         for body in bodies:
             total_force = compute_force(
-                root, body['position'], body['mass'])
+                root, body['position'][-1], body['mass'])
             particles_force[body['name']] = total_force
         for body in bodies:
             force = particles_force[body['name']]
-            body['velocity'] += force / body['mass'] * time_step_size
+            acceleration = force / body['mass']
 
-            body['position'] += body['velocity'] * time_step_size
-            n = bodies.index(body)
+            body['velocity'].append(
+                body['velocity'][-1] + (acceleration * time_step_size))
 
-            results[n]['position'].append(body['position'])
-            results[n]['velocity'].append(body['velocity'])
-
+            body['position'].append(
+                body['position'][-1] + body['velocity'][-1] * time_step_size)
+        print(str(i) + " / " + str(time_steps))
     return results
 
 
@@ -164,18 +156,18 @@ def find_root_bbox(array):
     xmin = xmax = ymin = ymax = zmin = zmax = 0
 
     for body in array:
-        if body['position'][0] > xmax:
-            xmax = body['position'][0]
-        if body['position'][0] < xmin:
-            xmin = body['position'][0]
-        if body['position'][1] > ymax:
-            ymax = body['position'][1]
-        if body['position'][1] < ymin:
-            ymin = body['position'][1]
-        if body['position'][2] > zmax:
-            zmax = body['position'][2]
-        if body['position'][2] < zmin:
-            zmin = body['position'][2]
+        if body['position'][-1][0] > xmax:
+            xmax = body['position'][-1][0]
+        if body['position'][-1][0] < xmin:
+            xmin = body['position'][-1][0]
+        if body['position'][-1][1] > ymax:
+            ymax = body['position'][-1][1]
+        if body['position'][-1][1] < ymin:
+            ymin = body['position'][-1][1]
+        if body['position'][-1][2] > zmax:
+            zmax = body['position'][-1][2]
+        if body['position'][-1][2] < zmin:
+            zmin = body['position'][-1][2]
     # make sure the boundary box is a square
     if xmax - xmin == ymax - ymin == zmax - zmin:
         return xmin, xmax, ymin, ymax, zmin, zmax

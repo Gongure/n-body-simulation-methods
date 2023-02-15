@@ -1,14 +1,8 @@
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
+
 import numpy as np
 from astroquery.jplhorizons import Horizons
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from matplotlib.backend_tools import ToolBase
-from matplotlib.animation import FuncAnimation
-import matplotlib
-matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
 def evaluate_results(simulation_results, end_conditions):

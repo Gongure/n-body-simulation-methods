@@ -1,7 +1,7 @@
 from bruteforcealgorithm import *
 from utilities import *
 from treebasedalgorithm import *
-
+from visualization import *
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
@@ -33,7 +33,7 @@ def setup(start_date, total_time, time_step_size):
     tree_based_simulation_results = treeBasedAlgorithm(
         time_steps, time_step_size, inital_conditions)
 
-    print(tree_based_simulation_results)
+    visualize_planetary_motionEndPic(tree_based_simulation_results, time_steps)
 
     # print(evaluate_results(brute_force_simulation_results, final_conditions))
     #print(evaluate_results(tree_based_simulation_results, final_conditions))
