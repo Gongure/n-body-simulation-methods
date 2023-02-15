@@ -1,6 +1,6 @@
 from bruteforcealgorithm import *
 from utilities import *
-from treebasedalgorithm import *
+from treebasedalgorithm2 import *
 from visualization import *
 
 from mpl_toolkits.mplot3d import Axes3D
