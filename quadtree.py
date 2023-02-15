@@ -71,7 +71,7 @@ def display(root):
         plt_node(root.bbox[0], y, width)
         plt_node(x, root.bbox[2], width)
         plt_node(x, y, width)
-        for i in xrange(4):
+        for i in range(4):
             if root.children[i] is not None:
                 display(root.children[i])
     else:
@@ -89,7 +89,7 @@ def compute_force(root, x, y, m):
             force(x, y, m, root.center_of_mass[0],
                   root.center_of_mass[1], root.mass)
     else:
-        for i in xrange(4):
+        for i in range(4):
             if root.children[i] is not None:
                 f = f + compute_force(root.children[i], x, y, m)
     return f
@@ -170,7 +170,7 @@ def data_from_file(filename, array):
 
 
 def data_from_random(quantity, array):
-    for i in xrange(quantity):
+    for i in range(quantity):
         x = random.randrange(0, 10000)
         y = random.randrange(0, 10000)
         m = random.randrange(100, 10000)
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     root = Node()
     root.center_of_mass = []
     root.bbox = find_root_bbox(particles)
-    for i in xrange(len(particles)):
+    for i in range(len(particles)):
         quad_insert(root, particles[i][0], particles[i][1], particles[i][2])
     print 'Boundary box: ', root.bbox
     print 'Total mass: ', root.mass
