@@ -87,17 +87,19 @@ def calculateForce(node, body_position, mass):
         return resultingForce
 
     else:
-        # Otherwise, calculate the ratio s/d. If s/d < θ, treat this internal node as a single body, and calculate the force it exerts on body b, and add this amount to b’s net force.
+        # Otherwise, calculate the ratio s/d.
+
         # size of the square boundary box
         s = np.linalg.norm(node.bbox[1][0] - node.bbox[0][0])
         # distance between the center of mass and the body
         d = np.linalg.norm(body_position - node.center_of_mass).value
+        # If s/d < θ, treat this internal node as a single body, and calculate the force it exerts on body b, and add this amount to b’s net force.
         if s/d < theta:
             resultingForce = calculateGravity(
                 node.center_of_mass, body_position, node.mass, mass)
             return resultingForce
         else:
-            # Otherwise, run the procedure recursively on each of the current node’s children.
+            # Otherwise, run the procedure recursively on each of the curren t node’s children.
             resultingForce = np.array([0, 0, 0]) * u.N
 
             for child in node.children:
