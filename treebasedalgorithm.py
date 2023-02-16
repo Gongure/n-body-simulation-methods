@@ -1,247 +1,233 @@
-from __future__ import division
 import numpy as np
-import math
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.patches as patches
-import random
-import astropy.units as u
+from astroquery.jplhorizons import Horizons
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
 
 theta = 0.5
-AU = (149.6e6 * 1000)     # 149.6 million km, in meters.
+
+# Calculate the gravitational constant
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
-fig1 = plt.figure()
-sim = fig1.add_subplot(111, aspect='equal')
-fig2 = plt.figure()
-quadt = fig2.add_subplot(111, aspect='equal')
 
 
 class Node:
     children = None
     mass = None
-    center_of_mass = np.array([0, 0, 0]) * u.au
+    center_of_mass = None
+    # boundary box
     bbox = None
-    velocity = np.array([0, 0, 0]) * u.au / u.day
 
 
-def oct_insert(root, position, mass):  # octree
-    if root.mass is None:  # when the root is empty, add the first particle
-        root.mass = mass
-        root.center_of_mass = position
+def insertInTree(node, body_position, body_mass):
+    # If node x does not contain a body, put the new body b here.
+    if node.mass is None:
+        node.mass = body_mass
+        node.center_of_mass = body_position
         return
-    elif root.children is None:
-        root.children = [None, None, None, None, None, None, None, None]
-        old_quadrant = octant_of_particle(
-            root.bbox, root.center_of_mass)
-        root.children[old_quadrant] = Node()
-        root.children[old_quadrant].bbox = octant_bbox(
-            root.bbox, old_quadrant)
-        oct_insert(root.children[old_quadrant],
-                   root.center_of_mass, root.mass)
-        new_quadrant = octant_of_particle(root.bbox, position)
-        if root.children[new_quadrant] is None:
-            root.children[new_quadrant] = Node()
-            root.children[new_quadrant].bbox = octant_bbox(
-                root.bbox, new_quadrant)
-        oct_insert(root.children[new_quadrant], position, mass)
-        root.center_of_mass = (root.center_of_mass *
-                               root.mass + position * mass) / (root.mass + mass)
-        root.mass = root.mass + mass
-    else:
-        new_quadrant = octant_of_particle(root.bbox, position)
-        if root.children[new_quadrant] is None:
-            root.children[new_quadrant] = Node()
-            root.children[new_quadrant].bbox = octant_bbox(
-                root.bbox, new_quadrant)
-        oct_insert(root.children[new_quadrant], position, mass)
-        root.center_of_mass = (root.center_of_mass *
-                               root.mass + position * mass) / (root.mass + mass)
-        root.mass = root.mass + mass
 
-
-def display(root):
-    if root.mass is None:
+    # If node x is an internal node, update the center-of-mass and total mass of x. Recursively insert the body b in the appropriate quadrant.
+    elif node.children is not None:
+        node.center_of_mass = (node.center_of_mass * node.mass +
+                               body_position * body_mass) / (node.mass + body_mass)
+        node.mass += body_mass
+        octant = get_octant(node.bbox, body_position)
+        if node.children[octant] is None:
+            node.children[octant] = Node()
+            node.children[octant].bbox = find_bbox(node.bbox, octant)
+        insertInTree(node.children[octant], body_position, body_mass)
         return
-    if root.children is not None:
-        x = (root.bbox[0] + root.bbox[1]) / 2
-        y = (root.bbox[2] + root.bbox[3]) / 2
-        width = x-root.bbox[0]
-        plt_node(root.bbox[0], root.bbox[2], width)
-        plt_node(root.bbox[0], y, width)
-        plt_node(x, root.bbox[2], width)
-        plt_node(x, y, width)
-        for i in range(4):
-            if root.children[i] is not None:
-                display(root.children[i])
+
+    # If node x is an external node, say containing a body named c, then there are two bodies b and c in the same region. Subdivide the region further by creating four children. Then, recursively insert both b and c into the appropriate quadrant(s). Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion. Finally, update the center-of-mass and total mass of x.
+    elif node.children is None:
+        node.children = [None, None, None, None, None, None, None, None]
+
+        # get the octant of the current node
+        old_octant = get_octant(node.bbox, node.center_of_mass)
+        # get the octant of the new body
+        new_octant = get_octant(node.bbox, body_position)
+
+        node.children[old_octant] = Node()
+        node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
+
+        node.children[new_octant] = Node()
+        node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
+
+        # insert the old body in the appropriate quadrant
+        insertInTree(node.children[old_octant], node.center_of_mass, node.mass)
+        # insert the new body in the appropriate quadrant
+        insertInTree(node.children[new_octant], body_position, body_mass)
+
+        # update the center of mass and mass of the current node
+        node.center_of_mass = (node.center_of_mass * node.mass +
+                               body_position * body_mass) / (node.mass + body_mass)
+        node.mass += body_mass
+        return
+# Rekursion error: maximum recursion depth exceeded
+# in function insertInTree
+# the reason is that the new body is inserted in the same quadrant as the old body
+# and the old body is inserted in the same quadrant as the new body
+# but the old body is already in the quadrant of the new body
+# so the old body is inserted in the same quadrant as the old body
+# and the new body is inserted in the same quadrant as the new body
+# and so on
+# the solution is to check if the new body is already in the quadrant of the old body
+# and if so, insert the new body in the next quadrant
+
+
+def calculateForce(node, body_position, mass):
+    if node.mass == mass:
+        return np.array([0, 0, 0]) * u.N
+    # If the current node is an external node (and it is not body b), calculate the force exerted by the current node on b, and add this amount to b’s net force.
+    elif node.children is None:
+
+        resultingForce = calculateGravity(
+            node.center_of_mass, body_position, node.mass, mass)
+        return resultingForce
+
     else:
-        quadt.scatter(root.center_of_mass[0], root.center_of_mass[1])
+        # Otherwise, calculate the ratio s/d. If s/d < θ, treat this internal node as a single body, and calculate the force it exerts on body b, and add this amount to b’s net force.
+        # size of the square boundary box
+        s = np.linalg.norm(node.bbox[1][0] - node.bbox[0][0])
+        # distance between the center of mass and the body
+        d = np.linalg.norm(body_position - node.center_of_mass).value
+        if s/d < theta:
+            resultingForce = calculateGravity(
+                node.center_of_mass, body_position, node.mass, mass)
+            return resultingForce
+        else:
+            # Otherwise, run the procedure recursively on each of the current node’s children.
+            resultingForce = np.array([0, 0, 0]) * u.N
+
+            for child in node.children:
+                if child is not None:
+                    resultingForce += calculateForce(child,
+                                                     body_position, mass)
+            return resultingForce
 
 
-def integrate(time_steps, time_step_size, bodies):
-    results = bodies
+def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
+    # tim_step_size defines the time between each iteration
 
-    # do a version where results isnt overwrittens
+    # Setup the initial conditions
+    current_conditions = initial_conditions
+
+    # Iterate over the time steps
     for i in range(time_steps):
-        particles_force = {}
-        root = Node()
-        root.center_of_mass = []
-        root.bbox = find_root_bbox(bodies)
-        for body in bodies:
-            oct_insert(root, body['position'][-1], body['mass'])
-        for body in bodies:
-            force = particles_force[body['name']]
-            acceleration = force / body['mass']
 
+        # Construct the tree
+        root = Node()
+        # root.center_of_mass = []
+        root.bbox = find_root_bbox([body['position'][-1].value
+                                   for body in current_conditions])
+
+        for body in current_conditions:
+            insertInTree(root, body['position'][-1], body['mass'])
+
+        for body in current_conditions:
+
+            resultingForce = calculateForce(
+                root, body['position'][-1], body['mass'])
+
+            # Calculate the acceleration of the body
+            acceleration = resultingForce / body['mass']
+
+            # Calculate the new velocity of the body
             body['velocity'].append(
                 body['velocity'][-1] + (acceleration * time_step_size))
 
+        for body in current_conditions:
+            # Calculate the new position of the body
             body['position'].append(
                 body['position'][-1] + body['velocity'][-1] * time_step_size)
-        print(str(i) + " / " + str(time_steps))
-    return results
+
+        print(str(i) + ' / ' +
+              str(time_steps))
+
+    return current_conditions
 
 
-def compute_force(root, position, m):
-    if root.mass is None:
-        return np.array([0, 0, 0]) * u.N
-    if root.center_of_mass.value.all() == position.value.all() and root.mass == m:
-        return np.array([0, 0, 0]) * u.N
-    d = root.bbox[1] - root.bbox[0]
+########################## Helper functions##########################
 
-    r = position - root.center_of_mass
-    r = np.linalg.norm(r)
+def calculateGravity(other_body_position, body_position, other_body_mass, body_mass):
+    # Calculate the connection vector between the bodies
+    connectionVector = other_body_position - body_position
 
-    if d/r < theta or root.children is None:
-        return force(m, position, root.mass, root.center_of_mass)
-    else:
-        f = np.array([0, 0, 0]) * u.N
+    # Calculate the length of the connection vector
+    distance = np.linalg.norm(connectionVector)
 
-        for i in range(8):
-            if root.children[i] is not None:
-                f += compute_force(root.children[i], position, m)
-        return f
+    # Normalize the connection vector
+    direction = connectionVector / distance
 
-################################################# SUPPORTING FUNCTION ##############################################################
+    # Calculate the gravitational force between the bodies
+    force = G * (body_mass * other_body_mass) / (distance**2)
+
+    # Calculate the resultant force
+    resultingForce = force * direction
+
+    return resultingForce
 
 
-def force(m, position, mcm, pcm):
-    d = np.linalg.norm(position - pcm)
-    direction = (position - pcm) / d
-    f = (G * m * mcm) / (d**2)
-    f = f * direction.value
+def find_root_bbox(array_of_positions):
+    # Fin the smallest and largest x, y and z values
 
-    return f
+    min_x = min(array_of_positions, key=lambda x: x[0])[0]
+    max_x = max(array_of_positions, key=lambda x: x[0])[0]
+    min_y = min(array_of_positions, key=lambda x: x[1])[1]
+    max_y = max(array_of_positions, key=lambda x: x[1])[1]
+    min_z = min(array_of_positions, key=lambda x: x[2])[2]
+    max_z = max(array_of_positions, key=lambda x: x[2])[2]
 
+    cmin = np.array([min_x, min_y, min_z])
+    cmax = np.array([max_x, max_y, max_z])
 
-def plt_node(x, y, width):
-    quadt.add_patch(patches.Rectangle((x, y), width, width, fill=False))
+    return [cmin, cmax]
 
-
-def find_root_bbox(array):
-    """ Create a suitable square boundary box for the input particles
-    """
-    if len(array) == 0 or len(array) == 1:
-        return None
-
-    # create a search algorithm to find the min and max of x, y, and z stored in the array as a np.array([x,y,z]
-    # (hint: use np.min and np.max)
-    xmin = xmax = ymin = ymax = zmin = zmax = 0
-
-    for body in array:
-        if body['position'][-1][0] > xmax:
-            xmax = body['position'][-1][0]
-        if body['position'][-1][0] < xmin:
-            xmin = body['position'][-1][0]
-        if body['position'][-1][1] > ymax:
-            ymax = body['position'][-1][1]
-        if body['position'][-1][1] < ymin:
-            ymin = body['position'][-1][1]
-        if body['position'][-1][2] > zmax:
-            zmax = body['position'][-1][2]
-        if body['position'][-1][2] < zmin:
-            zmin = body['position'][-1][2]
-    # make sure the boundary box is a square
-    if xmax - xmin == ymax - ymin == zmax - zmin:
-        return xmin, xmax, ymin, ymax, zmin, zmax
-    elif xmax - xmin > ymax - ymin == zmax - zmin:
-        return xmin, xmax, ymin, ymax+(xmax-xmin-ymax+ymin), zmin, zmax+(xmax-xmin-zmax+zmin)
-    elif xmax - xmin == ymax - ymin > zmax - zmin:
-        return xmin, xmax+(ymax-ymin-xmax+xmin), ymin, ymax, zmin, zmax+(ymax-ymin-zmax+zmin)
-    elif xmax - xmin == zmax - zmin > ymax - ymin:
-        return xmin, xmax+(zmax-zmin-xmax+xmin), ymin, ymax, zmin, zmax
-    elif ymax - ymin == zmax - zmin > xmax - xmin:
-        return xmin, xmax, ymin, ymax+(zmax-zmin-ymax+ymin), zmin, zmax
-    elif xmax - xmin > ymax - ymin and xmax - xmin > zmax - zmin:
-        return xmin, xmax, ymin, ymax+(xmax-xmin-ymax+ymin), zmin, zmax+(xmax-xmin-zmax+zmin)
-    elif ymax - ymin > xmax - xmin and ymax - ymin > zmax - zmin:
-        return xmin, xmax+(ymax-ymin-xmax+xmin), ymin, ymax, zmin, zmax+(ymax-ymin-zmax+zmin)
-    else:
-        return xmin, xmax+(zmax-zmin-xmax+xmin), ymin, ymax+(zmax-zmin-ymax+ymin), zmin, zmax
+    # smallest cube boundary that contains all the bodies
 
 
-def octant_of_particle(bbox, position):
-    # retun the octant of the particle position = np.array([x,y,z])+
-    x = position[0]
-    y = position[1]
-    z = position[2]
+def get_octant(bbox, position):
+    position = position.value
+    cmin = bbox[0]
+    cmax = bbox[1]
+    a = 0
+    x = cmax[0] - cmin[0]
+    if position[0] > x/2:
+        a = 1
+    y = cmax[1] - cmin[1]
+    if position[1] > y/2:
+        a += 2
+    z = cmax[2] - cmin[2]
+    if position[2] > z/2:
+        a += 4
 
-    if z >= (bbox[5] + bbox[4])/2:
-        if y >= (bbox[3] + bbox[2])/2:
-            if x <= (bbox[1] + bbox[0])/2:
-                return 0
-            else:
-                return 1
-        else:
-            if x >= (bbox[1] + bbox[0])/2:
-                return 2
-            else:
-                return 3
-    else:
-        if y >= (bbox[3] + bbox[2])/2:
-            if x <= (bbox[1] + bbox[0])/2:
-                return 4
-            else:
-                return 5
-        else:
-            if x >= (bbox[1] + bbox[0])/2:
-                return 6
-            else:
-                return 7
+    return a
 
 
-def octant_bbox(bbox, octant):
-    """Return the coordinate of the octant
-    """
-    x = (bbox[0] + bbox[1]) / 2
-    y = (bbox[2] + bbox[3]) / 2
-    z = (bbox[4] + bbox[5]) / 2
+def find_bbox(bbox, octant):
+    cmin = bbox[0]
+    cmax = bbox[1]
 
-    # Octant 0: (xmin, x, y, ymax, zmin, z)
+    x = (cmax[0] - cmin[0])/2
+    y = (cmax[1] - cmin[1])/2
+    z = (cmax[2] - cmin[2])/2
+
+    center = cmin + np.array([x, y, z])
+
     if octant == 0:
-        return bbox[0], x, y, bbox[3], bbox[4], z
-    # Octant 1: (x, xmax, y, ymax, zmin, z)
+        return [cmin, center]
     elif octant == 1:
-        return x, bbox[1], y, bbox[3], bbox[4], z
-    # Octant 2: (x, xmax, ymin, y, zmin, z)
+        return [np.array([center[0], cmin[1], cmin[2]]), np.array([cmax[0], center[1], center[2]])]
     elif octant == 2:
-        return x, bbox[1], bbox[2], y, bbox[4], z
-    # Octant 3: (xmin, x, ymin, y, zmin, z)
+        return [np.array([cmin[0], center[1], cmin[2]]), np.array([center[0], cmax[1], center[2]])]
     elif octant == 3:
-        return bbox[0], x, bbox[2], y, bbox[4], z
-    # Octant 4: (xmin, x, y, ymax, z, zmax)
+        return [np.array([center[0], center[1], cmin[2]]), np.array([cmax[0], cmax[1], center[2]])]
     elif octant == 4:
-        return bbox[0], x, y, bbox[3], z, bbox[5]
-    # Octant 5: (x, xmax, y, ymax, z, zmax)
+        return [np.array([cmin[0], cmin[1], center[2]]), np.array([center[0], center[1], cmax[2]])]
     elif octant == 5:
-        return x, bbox[1], y, bbox[3], z, bbox[5]
-    # Octant 6: (x, xmax, ymin, y, z, zmax)
+        return [np.array([center[0], cmin[1], center[2]]), np.array([cmax[0], center[1], cmax[2]])]
     elif octant == 6:
-        return x, bbox[1], bbox[2], y, z, bbox[5]
-    # Octant 7: (xmin, x, ymin, y, z, zmax)
+        return [np.array([cmin[0], center[1], center[2]]), np.array([center[0], cmax[1], cmax[2]])]
     elif octant == 7:
-        return bbox[0], x, bbox[2], y, z, bbox[5]
+        return [center, cmax]
 
-
-def treeBasedAlgorithm(time_steps, time_step_size, data):
-    results = integrate(time_steps, time_step_size, data)
-    return results
+        # boundary of the octant cube
