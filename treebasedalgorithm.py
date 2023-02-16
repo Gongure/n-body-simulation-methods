@@ -3,6 +3,7 @@ from astroquery.jplhorizons import Horizons
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
+from visualization import *
 
 theta = 0.5
 
@@ -49,8 +50,9 @@ def insertInTree(node, body_position, body_mass):
         node.children[old_octant] = Node()
         node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
 
-        node.children[new_octant] = Node()
-        node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
+        if new_octant != old_octant:
+            node.children[new_octant] = Node()
+            node.children[new_octant].bbox = find_bbox(node.bbox, new_octant)
 
         # insert the old body in the appropriate quadrant
         insertInTree(node.children[old_octant], node.center_of_mass, node.mass)
@@ -142,6 +144,11 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
 
         print(str(i) + ' / ' +
               str(time_steps))
+
+        # for each body print the distance to the sun
+        for body in current_conditions:
+            print(body['name'] + ': ' +
+                  str(np.linalg.norm(body['position'][-1] - current_conditions[0]['position'][-1])))
 
     return current_conditions
 

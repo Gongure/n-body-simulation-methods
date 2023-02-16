@@ -60,4 +60,4 @@ def setup(start_date, total_time, time_step_size):
 
 
 # setup(start_date, total_time in years, time_step_size)
-setup('16.08.2005', 0.05 * u.year, 1 * u.day)
+setup('16.08.2005', (1/22) * u.year, 30 * u.minute)
