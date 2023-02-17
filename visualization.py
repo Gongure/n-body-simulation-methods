@@ -1,4 +1,5 @@
 
+import matplotlib.animation as anim
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ from astropy import units as u
 from matplotlib.backend_tools import ToolBase
 from matplotlib.animation import FuncAnimation
 import matplotlib
+matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
 def animate(data, time_steps, bboxes):
@@ -16,7 +18,7 @@ def animate(data, time_steps, bboxes):
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
 
-    PLOT_MAX = 5
+    PLOT_MAX = 7
     ARROW_LENGTH = 0.5
 
     plt.ion()
@@ -27,7 +29,21 @@ def animate(data, time_steps, bboxes):
 
     colors = [body['color'] for body in data]
 
+    # add button to toolbar
+    class Button(ToolBase):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def trigger(self, *args, **kwargs):
+            print("Button clicked")
+
+    toolmanager = plt.get_current_fig_manager().toolmanager
+    toolmanager.add_tool('Button', Button)
+    toolmanager.toolbar.add_tool('Button', 'navigation')
+
+    newbboxes = []
     for line in bboxes:
+        newline = []
         for bbox in line:
             ooo = bbox[0]
             iii = bbox[1]
@@ -37,12 +53,21 @@ def animate(data, time_steps, bboxes):
             ioo = [iii[0], ooo[1], ooo[2]]
             ioi = [iii[0], ooo[1], iii[2]]
             iio = [iii[0], iii[1], ooo[2]]
-    
-            
-            
+
+            # connect ooo ioo -ioi ioo- iio - iii iio - oio - oii oio - ooo, ooi ioi iii oii ooi
+            array = np.array([ooo, ioo, ioi, ioo, iio, iii, iio,
+                             oio, oii, oio, ooo, ooi, ioi, iii, oii, ooi])
+            newline.append(array)
+        newbboxes.append(newline)
 
     for i in range(time_steps):
         plt.cla()
+
+        # x and y axes arent the same length, so we need to scale them
+        # to make the arrows look like they are the same length
+
+        # Set the labels of the plot
+        ax.set_title('Time: ' + str(i) + ' days')
 
         ax.set_xlabel('X in AE')
         ax.set_ylabel('Y in AE')
@@ -57,7 +82,7 @@ def animate(data, time_steps, bboxes):
         current_positions_y = []
         current_positions_z = []
 
-        # umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen   
+        # umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen
         for body in data:
             current_positions_x += [body['position'][i][0]]
             current_positions_y += [body['position'][i][1]]
@@ -65,7 +90,15 @@ def animate(data, time_steps, bboxes):
 
         ax.scatter(
             xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
+        line = newbboxes[i]
+        for bboxpoints in line:
+            x_points = bboxpoints[:, 0]
+            y_points = bboxpoints[:, 1]
+            z_points = bboxpoints[:, 2]
+            ax.plot(x_points, y_points, z_points, color='black')
+            # plt.pause(0.001)
 
+        plt.pause(0.001)
         """
         if showName:
             ax.text(current_positions_x, current_positions_y,
@@ -89,7 +122,6 @@ def animate(data, time_steps, bboxes):
             ax.scatter(xs=PLOT_MAX, ys=PLOT_MAX, zs=PLOT_MAX, alpha=0.0)
             ax.scatter(xs=-PLOT_MAX, ys=-PLOT_MAX, zs=-PLOT_MAX, alpha=0.0)
         """
-        plt.pause(0.001)
 
 
 def visualize_planetary_motionEndPic(data, time_steps):

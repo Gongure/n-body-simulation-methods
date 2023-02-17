@@ -10,9 +10,6 @@ theta = 0.5
 # Calculate the gravitational constant
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
 
-boundery_boxes = []
-current_boxes = []
-
 
 class Node:
     children = None
@@ -22,7 +19,59 @@ class Node:
     bbox = None
 
 
+def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
+    # tim_step_size defines the time between each iteration
+    boundary_boxes = []
+    # Setup the initial conditions
+    current_conditions = initial_conditions
+
+    # Iterate over the time steps
+    for i in range(time_steps):
+
+        # Construct the tree
+        root = Node()
+        # root.center_of_mass = []
+        root.bbox = find_root_bbox([body['position'][-1].value
+                                   for body in current_conditions])
+
+        # clear current_boxes gloobally
+        global current_boxes
+        current_boxes = []
+        current_boxes.append(root.bbox)
+
+        for body in current_conditions:
+            insertInTree(root, body['position'][-1], body['mass'])
+
+        boundary_boxes.append(current_boxes)
+
+        for body in current_conditions:
+
+            resultingForce = calculateForce(
+                root, body['position'][-1], body['mass'])
+
+            # Calculate the acceleration of the body
+            acceleration = resultingForce / body['mass']
+
+            # Calculate the new velocity of the body
+            body['velocity'].append(
+                body['velocity'][-1] + (acceleration * time_step_size))
+
+        """
+        """
+        for body in current_conditions:
+            # Calculate the new position of the body
+            body['position'].append(
+                body['position'][-1] + body['velocity'][-1] * time_step_size)
+
+        print(str(i) + ' / ' +
+              str(time_steps))
+
+        
+    return current_conditions, boundary_boxes
+
+
 def insertInTree(node, body_position, body_mass):
+    global current_boxes
     # If node x does not contain a body, put the new body b here.
     if node.mass is None:
         node.mass = body_mass
@@ -106,56 +155,6 @@ def calculateForce(node, body_position, mass):
             return resultingForce
 
 
-def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
-    # tim_step_size defines the time between each iteration
-
-    # Setup the initial conditions
-    current_conditions = initial_conditions
-
-    # Iterate over the time steps
-    for i in range(time_steps):
-
-        # Construct the tree
-        root = Node()
-        # root.center_of_mass = []
-        root.bbox = find_root_bbox([body['position'][-1].value
-                                   for body in current_conditions])
-
-        current_boxes = []
-        current_boxes.append(root.bbox)
-
-        for body in current_conditions:
-            insertInTree(root, body['position'][-1], body['mass'])
-
-        boundery_boxes.append(current_boxes)
-
-        for body in current_conditions:
-
-            resultingForce = calculateForce(
-                root, body['position'][-1], body['mass'])
-
-            # Calculate the acceleration of the body
-            acceleration = resultingForce / body['mass']
-
-            # Calculate the new velocity of the body
-            body['velocity'].append(
-                body['velocity'][-1] + (acceleration * time_step_size))
-
-        for body in current_conditions:
-            # Calculate the new position of the body
-            body['position'].append(
-                body['position'][-1] + body['velocity'][-1] * time_step_size)
-
-        print(str(i) + ' / ' +
-              str(time_steps))
-
-        # for each body print the distance to the sun
-        for body in current_conditions:
-            print(body['name'] + ': ' +
-                  str(np.linalg.norm(body['position'][-1] - current_conditions[0]['position'][-1])))
-
-    return current_conditions, boundery_boxes
-
 ########################## Helper functions##########################
 
 
@@ -188,6 +187,19 @@ def find_root_bbox(array_of_positions):
     min_z = min(array_of_positions, key=lambda x: x[2])[2]
     max_z = max(array_of_positions, key=lambda x: x[2])[2]
 
+    # Find the largest difference between the smallest and largest values
+    max_diff = max(max_x - min_x, max_y - min_y, max_z - min_z)
+
+    # Find the center of the root bounding box
+    center = np.array([min_x, min_y, min_z]) + \
+        np.array([max_x-min_x, max_y-min_y, max_z-min_z])/2
+
+    # Fin the bottom left corner of the root bounding box
+    cmin = center - np.array([max_diff, max_diff, max_diff])/2
+    cmax = center + np.array([max_diff, max_diff, max_diff])/2
+
+    return [cmin, cmax]
+
     '''
     ooo = np.array([min_x, min_y, min_z])
     ooi = np.array([min_x, min_y, max_z])
@@ -203,10 +215,10 @@ def find_root_bbox(array_of_positions):
 
     '''
 
+    '''
     cmin = np.array([min_x, min_y, min_z])
     cmax = np.array([max_x, max_y, max_z])
-
-    return [cmin, cmax]
+    '''
 
     # smallest cube boundary that contains all the bodies
 
@@ -217,14 +229,14 @@ def get_octant(bbox, position):
     cmin = bbox[0]
     cmax = bbox[1]
     a = 0
-    x = cmax[0] - cmin[0]
-    if position[0] > x/2:
+    s = cmax[0] - cmin[0]
+    if position[0] > s/2 + cmin[0]:
         a = 1
-    y = cmax[1] - cmin[1]
-    if position[1] > y/2:
+
+    if position[1] > s/2 + cmin[1]:
         a += 2
-    z = cmax[2] - cmin[2]
-    if position[2] > z/2:
+
+    if position[2] > s/2 + cmin[2]:
         a += 4
 
     return a
