@@ -11,7 +11,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib
 
 
-def animate(data, time_steps):
+def animate(data, time_steps, bboxes):
     for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
@@ -26,6 +26,20 @@ def animate(data, time_steps):
     fig.suptitle("BruteForce", fontsize=12)
 
     colors = [body['color'] for body in data]
+
+    for line in bboxes:
+        for bbox in line:
+            ooo = bbox[0]
+            iii = bbox[1]
+            ooi = [ooo[0], ooo[1], iii[2]]
+            oio = [ooo[0], iii[1], ooo[2]]
+            oii = [ooo[0], iii[1], iii[2]]
+            ioo = [iii[0], ooo[1], ooo[2]]
+            ioi = [iii[0], ooo[1], iii[2]]
+            iio = [iii[0], iii[1], ooo[2]]
+    
+            
+            
 
     for i in range(time_steps):
         plt.cla()
@@ -43,6 +57,7 @@ def animate(data, time_steps):
         current_positions_y = []
         current_positions_z = []
 
+        # umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen   
         for body in data:
             current_positions_x += [body['position'][i][0]]
             current_positions_y += [body['position'][i][1]]

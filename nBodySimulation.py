@@ -30,10 +30,11 @@ def setup(start_date, total_time, time_step_size):
 
     #brute_force_simulation_results = bruteForceSimulation(time_steps, time_step_size, inital_conditions)
 
-    tree_based_simulation_results = treeBasedAlgorithm(
+    tree_based_simulation_results, bboxes = treeBasedAlgorithm(
         time_steps, time_step_size, inital_conditions)
 
-    visualize_planetary_motionEndPic(tree_based_simulation_results, time_steps)
+    animate(
+        tree_based_simulation_results, time_steps, bboxes)
 
     # print(evaluate_results(brute_force_simulation_results, final_conditions))
     #print(evaluate_results(tree_based_simulation_results, final_conditions))

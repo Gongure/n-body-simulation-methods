@@ -10,6 +10,9 @@ theta = 0.5
 # Calculate the gravitational constant
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
 
+boundery_boxes = []
+current_boxes = []
+
 
 class Node:
     children = None
@@ -35,6 +38,7 @@ def insertInTree(node, body_position, body_mass):
         if node.children[octant] is None:
             node.children[octant] = Node()
             node.children[octant].bbox = find_bbox(node.bbox, octant)
+            current_boxes.append(node.children[octant].bbox)
         insertInTree(node.children[octant], body_position, body_mass)
         return
 
@@ -50,9 +54,12 @@ def insertInTree(node, body_position, body_mass):
         node.children[old_octant] = Node()
         node.children[old_octant].bbox = find_bbox(node.bbox, old_octant)
 
+        current_boxes.append(node.children[old_octant].bbox)
+
         if new_octant != old_octant:
             node.children[new_octant] = Node()
             node.children[new_octant].bbox = find_bbox(node.bbox, new_octant)
+            current_boxes.append(node.children[new_octant].bbox)
 
         # insert the old body in the appropriate quadrant
         insertInTree(node.children[old_octant], node.center_of_mass, node.mass)
@@ -64,16 +71,6 @@ def insertInTree(node, body_position, body_mass):
                                body_position * body_mass) / (node.mass + body_mass)
         node.mass += body_mass
         return
-# Rekursion error: maximum recursion depth exceeded
-# in function insertInTree
-# the reason is that the new body is inserted in the same quadrant as the old body
-# and the old body is inserted in the same quadrant as the new body
-# but the old body is already in the quadrant of the new body
-# so the old body is inserted in the same quadrant as the old body
-# and the new body is inserted in the same quadrant as the new body
-# and so on
-# the solution is to check if the new body is already in the quadrant of the old body
-# and if so, insert the new body in the next quadrant
 
 
 def calculateForce(node, body_position, mass):
@@ -124,8 +121,13 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
         root.bbox = find_root_bbox([body['position'][-1].value
                                    for body in current_conditions])
 
+        current_boxes = []
+        current_boxes.append(root.bbox)
+
         for body in current_conditions:
             insertInTree(root, body['position'][-1], body['mass'])
+
+        boundery_boxes.append(current_boxes)
 
         for body in current_conditions:
 
@@ -152,10 +154,10 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
             print(body['name'] + ': ' +
                   str(np.linalg.norm(body['position'][-1] - current_conditions[0]['position'][-1])))
 
-    return current_conditions
-
+    return current_conditions, boundery_boxes
 
 ########################## Helper functions##########################
+
 
 def calculateGravity(other_body_position, body_position, other_body_mass, body_mass):
     # Calculate the connection vector between the bodies
@@ -186,6 +188,21 @@ def find_root_bbox(array_of_positions):
     min_z = min(array_of_positions, key=lambda x: x[2])[2]
     max_z = max(array_of_positions, key=lambda x: x[2])[2]
 
+    '''
+    ooo = np.array([min_x, min_y, min_z])
+    ooi = np.array([min_x, min_y, max_z])
+    oio = np.array([min_x, max_y, min_z])
+    oii = np.array([min_x, max_y, max_z])
+    ioo = np.array([max_x, min_y, min_z])
+    ioi = np.array([max_x, min_y, max_z])
+    iio = np.array([max_x, max_y, min_z])
+    iii = np.array([max_x, max_y, max_z])
+
+
+    return [ooo, ooi, oio, oii, ioo, ioi, iio, iii]
+
+    '''
+
     cmin = np.array([min_x, min_y, min_z])
     cmax = np.array([max_x, max_y, max_z])
 
@@ -195,6 +212,7 @@ def find_root_bbox(array_of_positions):
 
 
 def get_octant(bbox, position):
+
     position = position.value
     cmin = bbox[0]
     cmax = bbox[1]
