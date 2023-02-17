@@ -29,17 +29,9 @@ def animate(data, time_steps, bboxes):
 
     colors = [body['color'] for body in data]
 
-    # add button to toolbar
-    class Button(ToolBase):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-        def trigger(self, *args, **kwargs):
-            print("Button clicked")
-
-    toolmanager = plt.get_current_fig_manager().toolmanager
-    toolmanager.add_tool('Button', Button)
-    toolmanager.toolbar.add_tool('Button', 'navigation')
+    setup_buttons(fig)
+    global show_axes
+    show_axes = True
 
     newbboxes = []
     for line in bboxes:
@@ -61,10 +53,15 @@ def animate(data, time_steps, bboxes):
         newbboxes.append(newline)
 
     for i in range(time_steps):
+        while is_paused:
+            plt.pause(0.001)
+
         plt.cla()
 
-        # x and y axes arent the same length, so we need to scale them
-        # to make the arrows look like they are the same length
+        if not show_axes:
+            plt.axis('off')
+        else:
+            plt.axis('on')
 
         # Set the labels of the plot
         ax.set_title('Time: ' + str(i) + ' days')
@@ -99,29 +96,6 @@ def animate(data, time_steps, bboxes):
             # plt.pause(0.001)
 
         plt.pause(0.001)
-        """
-        if showName:
-            ax.text(current_positions_x, current_positions_y,
-                    current_positions_z, names)
-        """
-
-        """
-        for body in data:
-
-            ax.scatter(
-                xs=['position'][i][0], ys=body['position'][i][1], zs=body['position'][i][2])
-
-            if showName:
-                ax.text(body['position'][i][0], body['position'][i]
-                        [1], body['position'][i][2], body['name'])
-
-            if show_velocityVector:
-                ax.quiver(body['position'][i][0], body['position'][i][1], body['position'][i][2], body['velocity'][i][0],
-                          body['velocity'][i][1], body['velocity'][i][2], normalize=True, length=ARROW_LENGTH, color="red")
-
-            ax.scatter(xs=PLOT_MAX, ys=PLOT_MAX, zs=PLOT_MAX, alpha=0.0)
-            ax.scatter(xs=-PLOT_MAX, ys=-PLOT_MAX, zs=-PLOT_MAX, alpha=0.0)
-        """
 
 
 def visualize_planetary_motionEndPic(data, time_steps):
@@ -158,6 +132,7 @@ def animate_solar_system(data, interval=50):
             x['position'][i] = x['position'][i].value
 
     fig = plt.figure()
+
     ax = fig.add_subplot(111, projection='3d')
 
     # Keep track of the current time step
@@ -187,3 +162,42 @@ def animate_solar_system(data, interval=50):
     anim = FuncAnimation(fig, update, frames=max_time_step, interval=interval)
     # anim.save('solar_system.gif', writer='imagemagick')
     plt.show()
+
+
+class Pause(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Pause"
+
+    plt.show()
+
+    def trigger(self, *args, **kwargs):
+        global is_paused
+        is_paused = not is_paused
+
+
+class Axes(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Show Axes"
+
+    plt.show()
+
+    def trigger(self, *args, **kwargs):
+        global show_axes
+        show_axes = not show_axes
+
+
+def setup_buttons(fig):
+    # add tools
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("Pause", Pause)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("Pause"), "toolgroup")
+    global is_paused
+    is_paused = False
+
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("Axes", Axes)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("Axes"), "toolgroup")
+    global show_axes
+    show_axes = False
