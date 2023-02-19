@@ -66,7 +66,6 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
         print(str(i) + ' / ' +
               str(time_steps))
 
-        
     return current_conditions, boundary_boxes
 
 

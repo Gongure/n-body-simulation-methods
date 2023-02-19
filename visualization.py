@@ -93,7 +93,7 @@ def animate(data, time_steps, bboxes):
             y_points = bboxpoints[:, 1]
             z_points = bboxpoints[:, 2]
             ax.plot(x_points, y_points, z_points, color='black')
-            # plt.pause(0.001)
+            plt.pause(0.001)
 
         plt.pause(0.001)
 
