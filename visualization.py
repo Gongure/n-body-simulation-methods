@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
-def animate(data, time_steps, bboxes):
+def animate(data, time_steps, bboxes, name):
     for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
@@ -25,7 +25,7 @@ def animate(data, time_steps, bboxes):
     fig = plt.figure()
     ax = Axes3D(fig)
     ax = fig.add_subplot(111, projection='3d')
-    fig.suptitle("BruteForce", fontsize=12)
+    fig.suptitle(name, fontsize=12)
 
     colors = [body['color'] for body in data]
 
@@ -33,24 +33,25 @@ def animate(data, time_steps, bboxes):
     global show_axes
     show_axes = True
 
-    newbboxes = []
-    for line in bboxes:
-        newline = []
-        for bbox in line:
-            ooo = bbox[0]
-            iii = bbox[1]
-            ooi = [ooo[0], ooo[1], iii[2]]
-            oio = [ooo[0], iii[1], ooo[2]]
-            oii = [ooo[0], iii[1], iii[2]]
-            ioo = [iii[0], ooo[1], ooo[2]]
-            ioi = [iii[0], ooo[1], iii[2]]
-            iio = [iii[0], iii[1], ooo[2]]
+    if bboxes is not None:
+        newbboxes = []
+        for line in bboxes:
+            newline = []
+            for bbox in line:
+                ooo = bbox[0]
+                iii = bbox[1]
+                ooi = [ooo[0], ooo[1], iii[2]]
+                oio = [ooo[0], iii[1], ooo[2]]
+                oii = [ooo[0], iii[1], iii[2]]
+                ioo = [iii[0], ooo[1], ooo[2]]
+                ioi = [iii[0], ooo[1], iii[2]]
+                iio = [iii[0], iii[1], ooo[2]]
 
-            # connect ooo ioo -ioi ioo- iio - iii iio - oio - oii oio - ooo, ooi ioi iii oii ooi
-            array = np.array([ooo, ioo, ioi, ioo, iio, iii, iio,
-                             oio, oii, oio, ooo, ooi, ioi, iii, oii, ooi])
-            newline.append(array)
-        newbboxes.append(newline)
+                # connect ooo ioo -ioi ioo- iio - iii iio - oio - oii oio - ooo, ooi ioi iii oii ooi
+                array = np.array([ooo, ioo, ioi, ioo, iio, iii, iio,
+                                  oio, oii, oio, ooo, ooi, ioi, iii, oii, ooi])
+                newline.append(array)
+            newbboxes.append(newline)
 
     for i in range(time_steps):
         while is_paused:
@@ -87,13 +88,16 @@ def animate(data, time_steps, bboxes):
 
         ax.scatter(
             xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
-        line = newbboxes[i]
-        for bboxpoints in line:
-            x_points = bboxpoints[:, 0]
-            y_points = bboxpoints[:, 1]
-            z_points = bboxpoints[:, 2]
-            ax.plot(x_points, y_points, z_points, color='black')
-            plt.pause(0.001)
+
+        if bboxes is not None:
+            line = newbboxes[i]
+            for bboxpoints in line:
+                x_points = bboxpoints[:, 0]
+                y_points = bboxpoints[:, 1]
+                z_points = bboxpoints[:, 2]
+                ax.plot(x_points, y_points, z_points, color='black')
+                if is_slow:
+                    plt.pause(0.001)
 
         plt.pause(0.001)
 
@@ -186,6 +190,17 @@ class Axes(ToolBase):
         show_axes = not show_axes
 
 
+class slow(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Show Tree Construction"
+
+    plt.show()
+
+    def trigger(self, *args, **kwargs):
+        global is_slow
+        is_slow = not is_slow
+
+
 def setup_buttons(fig):
     # add tools
     tm = fig.canvas.manager.toolmanager
@@ -201,3 +216,10 @@ def setup_buttons(fig):
         tm.get_tool("Axes"), "toolgroup")
     global show_axes
     show_axes = False
+
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("slow", slow)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("slow"), "toolgroup")
+    global is_slow
+    is_slow = True

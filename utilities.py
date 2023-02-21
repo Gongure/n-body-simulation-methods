@@ -3,9 +3,10 @@ import numpy as np
 from astroquery.jplhorizons import Horizons
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.time import Time
 
 
-def evaluate_results(simulation_results, end_conditions):
+def evaluate_results(simulation_results, start_conditions, end_conditions):
 
     # array of distances
     distances = []
@@ -18,42 +19,76 @@ def evaluate_results(simulation_results, end_conditions):
         b = end_conditions[i]['position'][0]
         ab = a - b
 
-        distance = np.linalg.norm(ab)
+        deviation = np.linalg.norm(ab)
 
-        distances.append(distance)
+       # track_length = np.linalg.norm(end_conditions[i]['position'][0] -
 
-        print(distance)
+        # Eine Gute Methode um die tatzächliche Abweichung in relation zu bringen
+
+        # distances.append(distance)
+
+        # print(distance)
         print('')
     return distances
 
 
-def fetch_data(date):
-
-    # Define a list of objects to retrieve data for
+def fetch_data(start_date, end_date, time_step_size):
     objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10', 'color': 'yellow'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199', 'color': 'gray'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299', 'color': 'yellow'},  {'name': 'Earth', 'mass': 5.97237e24 *
                                                                                                                                                                                                                                                         u.kg, 'id': '399', 'color': 'blue'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499', 'color': 'red'},               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599', 'color': 'orange'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699', 'color': 'yellow'}]
 
     data = []
 
-    # Iterate over the objects
-    for obj in objects:
-        # Query the JPL Horizons database using Astroquery
+    if start_date == 'on':
+        for obj in objects:
+            # Query the JPL Horizons database using Astroquery
 
-        # id_type='majorbody' ; get_raw_response=True
-        result = Horizons(
-            id=obj['id'], location='500@10', epochs=date).vectors()
+            if start_date == 'on':
+                # id_type='majorbody' ; get_raw_response=True
+                result = Horizons(
+                    id=obj['id'], location='500@10', epochs=end_date).vectors()
 
-        # Extract the position and velocity data from the result and convert to astropy units
-        # Turn the data into a numpy array
-        velocity = np.array([result['vx'][0], result['vy']
-                            [0], result['vz'][0]]) * u.au/u.day
+            # Extract the position and velocity data from the result and convert to astropy units
+            # Turn the data into a numpy array
+            velocity = np.array([result['vx'][0], result['vy']
+                                [0], result['vz'][0]]) * u.au/u.day
 
-        position = np.array(
-            [result['x'][0], result['y'][0], result['z'][0]]) * u.au
+            position = np.array(
+                [result['x'][0], result['y'][0], result['z'][0]]) * u.au
 
-        # Append the data to the list
-        data.append({'name': obj['name'], 'mass': obj['mass'],
-                    'position': [position], 'velocity': [velocity], 'color': obj['color']})
+            # Append the data to the list
+            data.append({'name': obj['name'], 'mass': obj['mass'],
+                        'position': [position], 'velocity': [velocity], 'color': obj['color']})
+    else:
+        if time_step_size.unit == u.day:
+            time_step_size = str(str(int(time_step_size.value)) + 'd')
+        elif time_step_size.unit == u.hour:
+            time_step_size = str(str(int(time_step_size.value)) + 'h')
+        elif time_step_size.unit == u.minute:
+            time_step_size = str(str(int(time_step_size.value)) + 'm')
+        elif time_step_size.unit == u.second:
+            time_step_size = str(str(int(time_step_size.value)) + 's')
+        for obj in objects:
+            # Query the JPL Horizons database using Astroquery
+
+            isostart = Time(start_date, format='jd').iso
+            isoend = Time(end_date, format='jd').iso
+            result = Horizons(
+                id=obj['id'], location='500@10', epochs={'start': isostart, 'stop': isoend, 'step': time_step_size}).vectors()
+
+            # Extract the position and velocity data from the result and convert to astropy units
+            # Turn the data into a numpy array
+            velocity = np.array([result['vx'][0], result['vy']
+                                [0], result['vz'][0]]) * u.au/u.day
+
+            position = []
+            for i in range(len(result['x'])):
+                position.append(
+                    np.array([result['x'][i], result['y'][i], result['z'][i]]) * u.au)
+
+            # für v unwichitg
+            # Append the data to the list
+            data.append({'name': obj['name'], 'mass': obj['mass'],
+                        'position': position, 'velocity': [velocity], 'color': obj['color']})
     return data
 
     # summ up how the array "data" is structured. Leave out the color:

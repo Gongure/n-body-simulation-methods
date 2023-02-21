@@ -5,6 +5,8 @@ from astropy import units as u
 
 from visualization import *
 
+import copy
+
 theta = 0.5
 
 # Calculate the gravitational constant
@@ -40,14 +42,17 @@ def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
         current_boxes.append(root.bbox)
 
         for body in current_conditions:
-            insertInTree(root, body['position'][-1], body['mass'])
-
+            m = copy.deepcopy(body['mass'])
+            p = copy.deepcopy(body['position'][-1])
+            insertInTree(root, p, m)
         boundary_boxes.append(current_boxes)
 
         for body in current_conditions:
 
+            m = copy.deepcopy(body['mass'])
+            p = copy.deepcopy(body['position'][-1])
             resultingForce = calculateForce(
-                root, body['position'][-1], body['mass'])
+                root, p, m)
 
             # Calculate the acceleration of the body
             acceleration = resultingForce / body['mass']
@@ -73,21 +78,22 @@ def insertInTree(node, body_position, body_mass):
     global current_boxes
     # If node x does not contain a body, put the new body b here.
     if node.mass is None:
-        node.mass = body_mass
-        node.center_of_mass = body_position
+        node.mass = copy.deepcopy(body_mass)
+        node.center_of_mass = copy.deepcopy(body_position)
         return
 
     # If node x is an internal node, update the center-of-mass and total mass of x. Recursively insert the body b in the appropriate quadrant.
     elif node.children is not None:
-        node.center_of_mass = (node.center_of_mass * node.mass +
-                               body_position * body_mass) / (node.mass + body_mass)
-        node.mass += body_mass
-        octant = get_octant(node.bbox, body_position)
+        node.center_of_mass = copy.deepcopy((node.center_of_mass * node.mass +
+                                             body_position * body_mass) / (node.mass + body_mass))
+        node.mass += copy.deepcopy(body_mass)
+        octant = get_octant(node.bbox, copy.deepcopy(body_position))
         if node.children[octant] is None:
             node.children[octant] = Node()
             node.children[octant].bbox = find_bbox(node.bbox, octant)
             current_boxes.append(node.children[octant].bbox)
-        insertInTree(node.children[octant], body_position, body_mass)
+        insertInTree(node.children[octant], copy.deepcopy(
+            body_position), copy.deepcopy(body_mass))
         return
 
     # If node x is an external node, say containing a body named c, then there are two bodies b and c in the same region. Subdivide the region further by creating four children. Then, recursively insert both b and c into the appropriate quadrant(s). Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion. Finally, update the center-of-mass and total mass of x.
@@ -110,14 +116,16 @@ def insertInTree(node, body_position, body_mass):
             current_boxes.append(node.children[new_octant].bbox)
 
         # insert the old body in the appropriate quadrant
-        insertInTree(node.children[old_octant], node.center_of_mass, node.mass)
+        insertInTree(node.children[old_octant], copy.deepcopy(
+            node.center_of_mass), copy.deepcopy(node.mass))
         # insert the new body in the appropriate quadrant
-        insertInTree(node.children[new_octant], body_position, body_mass)
+        insertInTree(node.children[new_octant], copy.deepcopy(
+            body_position), copy.deepcopy(body_mass))
 
         # update the center of mass and mass of the current node
-        node.center_of_mass = (node.center_of_mass * node.mass +
-                               body_position * body_mass) / (node.mass + body_mass)
-        node.mass += body_mass
+        node.center_of_mass = copy.deepcopy((node.center_of_mass * node.mass +
+                                             body_position * body_mass) / (node.mass + body_mass))
+        node.mass += copy.deepcopy(body_mass)
         return
 
 
@@ -223,7 +231,6 @@ def find_root_bbox(array_of_positions):
 
 
 def get_octant(bbox, position):
-
     position = position.value
     cmin = bbox[0]
     cmax = bbox[1]
