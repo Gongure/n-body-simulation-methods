@@ -13,10 +13,15 @@ import matplotlib
 matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
-def animate(data, time_steps, bboxes, name):
+def animate(data, time_steps, bboxes, name, real_data):
     for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
+
+    if real_data is not None:
+        for x in real_data:
+            for i in range(len(x['position'])):
+                x['position'][i] = x['position'][i].value
 
     PLOT_MAX = 7
     ARROW_LENGTH = 0.5
@@ -80,7 +85,7 @@ def animate(data, time_steps, bboxes, name):
         current_positions_y = []
         current_positions_z = []
 
-        # umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen
+        # Unwichtig glaube ich : umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen
         for body in data:
             current_positions_x += [body['position'][i][0]]
             current_positions_y += [body['position'][i][1]]
@@ -88,6 +93,19 @@ def animate(data, time_steps, bboxes, name):
 
         ax.scatter(
             xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
+
+        if show_comparison:
+            real_positions_x = []
+            real_positions_y = []
+            real_positions_z = []
+
+            for body in real_data:
+                real_positions_x += [body['position'][i][0]]
+                real_positions_y += [body['position'][i][1]]
+                real_positions_z += [body['position'][i][2]]
+
+            ax.scatter(
+                xs=real_positions_x, ys=real_positions_y, zs=real_positions_z, c='red')
 
         if bboxes is not None:
             line = newbboxes[i]
@@ -130,44 +148,6 @@ def visualize_planetary_motionEndPic(data, time_steps):
     plt.show()
 
 
-def animate_solar_system(data, interval=50):
-    for x in data:
-        for i in range(len(x['position'])):
-            x['position'][i] = x['position'][i].value
-
-    fig = plt.figure()
-
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Keep track of the current time step
-    time_step = 0
-    max_time_step = max([len(planet['position']) for planet in data])
-
-    # Create a scatter plot for each planet
-    scatters = []
-    for planet in data:
-        scatters.append(ax.scatter([], [], [], label=planet['name']))
-
-    # Set up axis labels and limits
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-
-    def update(frame):
-        nonlocal time_step
-        for i, planet in enumerate(data):
-            if time_step >= len(planet['position']):
-                continue
-            x, y, z = planet['position'][time_step]
-            scatters[i].set_offsets(np.c_[x, y, z])
-        time_step = (time_step + 1) % max_time_step
-        return scatters
-
-    anim = FuncAnimation(fig, update, frames=max_time_step, interval=interval)
-    # anim.save('solar_system.gif', writer='imagemagick')
-    plt.show()
-
-
 class Pause(ToolBase):
     image = r"C:\Users\David\Pictures\dank memes ig"
     description = "Pause"
@@ -201,6 +181,17 @@ class slow(ToolBase):
         is_slow = not is_slow
 
 
+class comparison(ToolBase):
+    image = r"C:\Users\David\Pictures\dank memes ig"
+    description = "Show Comparison"
+
+    plt.show()
+
+    def trigger(self, *args, **kwargs):
+        global show_comparison
+        show_comparison = not show_comparison
+
+
 def setup_buttons(fig):
     # add tools
     tm = fig.canvas.manager.toolmanager
@@ -223,3 +214,10 @@ def setup_buttons(fig):
         tm.get_tool("slow"), "toolgroup")
     global is_slow
     is_slow = True
+
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("comparison", comparison)
+    fig.canvas.manager.toolbar.add_tool(
+        tm.get_tool("comparison"), "toolgroup")
+    global show_comparison
+    show_comparison = False

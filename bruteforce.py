@@ -1,3 +1,5 @@
+
+
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -137,7 +139,9 @@ def simulate(time_steps, time_step_size, initial_conditions):
 
         for body in current_conditions:
 
-            resultingForce = np.array([0, 0, 0]) * u.N
+            otherPart = np.array([0, 0, 0]) * u.kg / u.au**2
+
+            # F = Sum of f  = Gm * sum of m * (position of other body - position of body) / distance^3
 
             for other_body in current_conditions:
                 if body['name'] != other_body['name']:
@@ -151,12 +155,18 @@ def simulate(time_steps, time_step_size, initial_conditions):
                     # Normalize the connection vector
                     direction = connectionVector / distance
 
-                    # Calculate the gravitational force between the bodies
+                    '''# Calculate the gravitational force between the bodies
                     force = G * (body['mass'] *
-                                 other_body['mass']) / (distance**2)
+                                 other_body['mass']) / (distance**2)'''
 
+                    thingi = other_body['mass'] / (distance**2)
+                    otherPart += thingi * direction
+
+                    '''
                     # Calculate the resultant force
-                    resultingForce += force * direction
+                    resultingForce += force * direction'''
+
+            resultingForce = G * body['mass'] * otherPart
 
             # Calculate the acceleration of the body
             acceleration = resultingForce / body['mass']

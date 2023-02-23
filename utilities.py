@@ -6,30 +6,38 @@ from astropy import units as u
 from astropy.time import Time
 
 
-def evaluate_results(simulation_results, start_conditions, end_conditions):
+def evaluate_results(simulation_results, end_conditions):
 
-    # array of distances
-    distances = []
+    # the average deviation of the simulation is the sum of the deviations of each object
+    # the deviation of an object is the distance between the final position of the object and the final position of the object in the simulation divided by the last position minus the penultimate position
+
+    total_deviation = 0
 
     for i in range(len(simulation_results)):
-        print(simulation_results[i]['name'])
-        # print(simulation_results[i]['position'][-1])
-        # print(end_conditions[i]['position'])
-        a = simulation_results[i]['position'][-1]
-        b = end_conditions[i]['position'][0]
-        ab = a - b
 
-        deviation = np.linalg.norm(ab)
+        # the deviation of the ith object
+        deviation = 0
 
-       # track_length = np.linalg.norm(end_conditions[i]['position'][0] -
+        # the final position of the ith object
+        final_position = end_conditions[i]['position'][-1]
 
-        # Eine Gute Methode um die tatzächliche Abweichung in relation zu bringen
+        # the final position of the ith object in the simulation
+        final_simulation_position = simulation_results[i]['position'][-1]
 
-        # distances.append(distance)
+        # the penultimate position of the ith object
+        penultimate_position = end_conditions[i]['position'][-2]
 
-        # print(distance)
-        print('')
-    return distances
+        # is this the same as the following?
+        deviation = np.linalg.norm((final_position - final_simulation_position).value) / \
+            np.linalg.norm((final_position - penultimate_position).value + 1)
+
+        # add the deviation of the ith object to the total deviation
+        total_deviation += deviation
+
+    # the average deviation is the total deviation divided by the number of objects
+    average_deviation = total_deviation / len(simulation_results)
+
+    return average_deviation
 
 
 def fetch_data(start_date, end_date, time_step_size):
@@ -93,7 +101,7 @@ def fetch_data(start_date, end_date, time_step_size):
 
     # summ up how the array "data" is structured. Leave out the color:
     #data = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'position': [position], 'velocity': [velocity]}]
-
+'''
 
 def julian_date(date):
     date = date.split('.')
@@ -114,4 +122,4 @@ def julian_date(date):
     JD = str(JD)
     JD = JD.split('.')
     JD = JD[0] + '.' + JD[1][:5]
-    return JD
+    return JD'''
