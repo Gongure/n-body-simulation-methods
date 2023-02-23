@@ -149,7 +149,7 @@ def visualize_planetary_motionEndPic(data, time_steps):
 
 
 class Pause(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
+    image = r"/assets/pic.png"
     description = "Pause"
 
     plt.show()
@@ -160,7 +160,7 @@ class Pause(ToolBase):
 
 
 class Axes(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
+    image = r"/assets/pic.png"
     description = "Show Axes"
 
     plt.show()
@@ -171,7 +171,7 @@ class Axes(ToolBase):
 
 
 class slow(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
+    image = r"/assets/pic.png"
     description = "Show Tree Construction"
 
     plt.show()
@@ -182,7 +182,7 @@ class slow(ToolBase):
 
 
 class comparison(ToolBase):
-    image = r"C:\Users\David\Pictures\dank memes ig"
+    image = r"/assets/pic.png"
     description = "Show Comparison"
 
     plt.show()

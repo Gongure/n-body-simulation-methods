@@ -151,6 +151,7 @@ def calculateForce(node, body_position, mass):
         if s/d < theta:
             resultingForce = calculateGravity(
                 node.center_of_mass, body_position, node.mass, mass)
+
             return resultingForce
         else:
             # Otherwise, run the procedure recursively on each of the curren t node’s children.

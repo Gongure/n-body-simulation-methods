@@ -34,8 +34,10 @@ def setup(start_date, total_time, time_step_size, simulation_type):
     # print(end_julian_date)
 
     inital_conditions = fetch_data('on', start_julian_date, time_step_size)
-    real_conditions = fetch_data(
-        start_julian_date, end_julian_date, time_step_size)
+
+    '''real_conditions = fetch_data(
+        start_julian_date, end_julian_date, time_step_size)'''
+    real_conditions = fetch_data('on', end_julian_date, time_step_size)
 
     global body_number
 
@@ -109,16 +111,15 @@ if input("Use default values? (y/n): ") == 'n':
     treeBasedSimulationResults = []
     bboxes = []
 
-    body_number = input(
-        'Input intiger for number of bodies to simulate (Planets = 0-8, Moons = 0-8): ')
-    body_number = int(body_number)
-
-    theta = input('Input theta for Barnes-Hut algorithm: ')
+    theta = float(input('Input theta for Barnes-Hut algorithm: '))
 else:
     start_date = '2005-08-16'
     total_time = 1 * u.year
     time_step_size = 1 * u.day
-    body_number = 7
+
+
+body_number = int(input(
+    'Input integer for number of bodies to simulate (Planets = 0-8, Moons = 8-40: '))
 
 
 start_date = str(start_date + ' 00:00:00')
@@ -134,7 +135,7 @@ if a == '1':
     brute_force_deviation = setup(
         start_date, total_time, time_step_size, 'brute-force')
 if a == '2':
-    theta = input('Input theta for Barnes-Hut algorithm: ')
+    theta = float(input('Input theta for Barnes-Hut algorithm: '))
     tree_based_deviation = setup(
         start_date, total_time, time_step_size, 'tree-based')
 
