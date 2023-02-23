@@ -41,8 +41,32 @@ def evaluate_results(simulation_results, end_conditions):
 
 
 def fetch_data(start_date, end_date, time_step_size):
-    objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10', 'color': 'yellow'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199', 'color': 'gray'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299', 'color': 'yellow'},  {'name': 'Earth', 'mass': 5.97237e24 *
+    '''objects = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'id': '10', 'color': 'yellow'},  {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199', 'color': 'gray'},  {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299', 'color': 'yellow'},  {'name': 'Earth', 'mass': 5.97237e24 *
                                                                                                                                                                                                                                                         u.kg, 'id': '399', 'color': 'blue'},  {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499', 'color': 'red'},               {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599', 'color': 'orange'},  {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699', 'color': 'yellow'}]
+'''
+    objects = [
+        {'name': 'Sun', 'mass': 1.989e+30 * u.kg,
+            'id': '10', 'color': 'yellow', 'GM': 1.3271244004193938E+11},
+        {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'id': '199',
+            'color': 'gray', 'GM': 2.2031780000000021E+04},
+        {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'id': '299',
+            'color': 'yellow', 'GM': 3.2485859200000006E+05},
+        {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'id': '399',
+            'color': 'blue', 'GM': 3.9860043543609598E+05},
+        {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'id': '499',
+            'color': 'red', 'GM': 4.282837362069909E+04},
+        {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'id': '599',
+            'color': 'orange', 'GM': 1.266865349218008E+08},
+        {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'id': '699',
+            'color': 'yellow', 'GM': 3.793120749865224E+07}
+    ]
+
+    G = 6.674e-20 * u.km**3 * u.kg**-1 * u.s**-2
+    for obj in objects:
+        obj['GM'] = obj['GM'] * u.km**3 / u.s**2
+        obj['mass'] = obj['GM'] / G
+        obj['GM'] = obj['GM'].to(u.au**3 / u.day**2)
+        # G in km^3 / kg * s^2
 
     data = []
 
@@ -64,7 +88,7 @@ def fetch_data(start_date, end_date, time_step_size):
                 [result['x'][0], result['y'][0], result['z'][0]]) * u.au
 
             # Append the data to the list
-            data.append({'name': obj['name'], 'mass': obj['mass'],
+            data.append({'name': obj['name'], 'mass': obj['mass'], 'GM': obj['GM'],
                         'position': [position], 'velocity': [velocity], 'color': obj['color']})
     else:
         if time_step_size.unit == u.day:
@@ -95,9 +119,10 @@ def fetch_data(start_date, end_date, time_step_size):
 
             # für v unwichitg
             # Append the data to the list
-            data.append({'name': obj['name'], 'mass': obj['mass'],
+            data.append({'name': obj['name'], 'mass': obj['mass'], 'GM': obj['GM'],
                         'position': position, 'velocity': [velocity], 'color': obj['color']})
     return data
+
 
     # summ up how the array "data" is structured. Leave out the color:
     #data = [{'name': 'Sun', 'mass': 1.989e+30 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mercury', 'mass': 3.3022e+23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Venus', 'mass': 4.8685e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Earth', 'mass': 5.97237e24 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Mars', 'mass': 6.4185e23 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Jupiter', 'mass': 1.8986e+27 * u.kg, 'position': [position], 'velocity': [velocity]}, {'name': 'Saturn', 'mass': 5.6846e+26 * u.kg, 'position': [position], 'velocity': [velocity]}]
@@ -116,8 +141,8 @@ def julian_date(date):
     if year < 0:
         C = int((365.25 * year) - 0.75)
     else:
-        C = int(365.25 * year)
     D = int(30.6001 * (month + 1))
+        C = int(365.25 * year)
     JD = B + C + D + day + 1720994.5
     JD = str(JD)
     JD = JD.split('.')

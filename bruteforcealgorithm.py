@@ -16,20 +16,21 @@ def bruteForceSimulation(time_steps, time_step_size, initial_conditions):
     # Setup the initial conditions
     current_conditions = initial_conditions
 
+    '''
     # Calculate the gravitational constant
     G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
+    '''
 
     # Iterate over the time steps
     for i in range(time_steps):
 
         for body in current_conditions:
 
-            resultingForce = np.array([0, 0, 0]) * u.N
+            '''resultingForce = np.array([0, 0, 0]) * u.N
 
             for other_body in current_conditions:
                 if body['name'] != other_body['name']:
                     # Calculate the connection vector between the bodies
-                    connectionVector = other_body['position'][-1] - \
                         body['position'][-1]
 
                     # Calculate the length of the connection vector
@@ -43,7 +44,37 @@ def bruteForceSimulation(time_steps, time_step_size, initial_conditions):
                                  other_body['mass']) / (distance**2)
 
                     # Calculate the resultant force
-                    resultingForce += force * direction
+                    resultingForce += force * direction'''
+
+            otherPart = np.array([0, 0, 0]) * u.kg / u.au**2
+
+            # F = Sum of f  = Gm * sum of m * (position of other body - position of body) / distance^3
+
+            for other_body in current_conditions:
+                if body['name'] != other_body['name']:
+                    # Calculate the connection vector between the bodies
+                    connectionVector = other_body['position'][-1] - \
+                        body['position'][-1]
+
+                    # Calculate the length of the connection vector
+                    distance = np.linalg.norm(connectionVector)
+
+                    # Normalize the connection vector
+                    direction = connectionVector / distance
+
+                    '''# Calculate the gravitational force between the bodies
+                    force = G * (body['mass'] *
+                                 other_body['mass']) / (distance**2)'''
+
+                    thingi = other_body['mass'] / (distance**2)
+                    otherPart += thingi * direction
+
+                    '''
+                    # Calculate the resultant force
+                    resultingForce += force * direction'''
+
+            resultingForce = body['GM'] * otherPart
+            
 
             # Calculate the acceleration of the body
             acceleration = resultingForce / body['mass']

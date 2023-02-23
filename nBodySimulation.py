@@ -23,6 +23,7 @@ from copy import deepcopy
 
 SKIP = False
 body_number = None
+theta = 0.5
 
 
 def setup(start_date, total_time, time_step_size, simulation_type):
@@ -69,9 +70,10 @@ def setup(start_date, total_time, time_step_size, simulation_type):
 
         bboxes = None
     elif simulation_type == 'tree-based':
+        global theta
         time_result = time.time()
         results, bboxes = treeBasedAlgorithm(
-            time_steps, time_step_size, inital_conditions)
+            time_steps, time_step_size, inital_conditions, theta)
         time_result = time.time() - time_result
 
     animationtype = 0
@@ -111,11 +113,13 @@ if input("Use default values? (y/n): ") == 'n':
         'Input intiger for number of bodies to simulate (Planets = 0-8, Moons = 0-8): ')
     body_number = int(body_number)
 
+    theta = input('Input theta for Barnes-Hut algorithm: ')
 else:
     start_date = '2005-08-16'
     total_time = 1 * u.year
     time_step_size = 1 * u.day
     body_number = 7
+
 
 start_date = str(start_date + ' 00:00:00')
 
@@ -127,12 +131,13 @@ tree_based_deviation = 0
 
 
 if a == '1':
-
     brute_force_deviation = setup(
         start_date, total_time, time_step_size, 'brute-force')
 if a == '2':
+    theta = input('Input theta for Barnes-Hut algorithm: ')
     tree_based_deviation = setup(
         start_date, total_time, time_step_size, 'tree-based')
+
 if a == '3':
     brute_force_deviation = setup(
         start_date, total_time, time_step_size, 'brute-force')
@@ -169,16 +174,13 @@ if a == '4':
         analyis['bf_deviation'].append(100 * bfdeviation)
         analyis['bf_time'].append(bf_time)
 
-        analyis['tb_deviation'].append(100 * bfdeviation)
-        analyis['tb_time'].append(bf_time)
-        '''
         tbdeviation, tb_time = setup(
             start_date, 1 * u.year, i * u.hour, 'tree-based')
 
-        analyis['tb_deviation'].append(tbdeviation)
+        analyis['tb_deviation'].append(100 * tbdeviation)
         analyis['tb_time'].append(tb_time)
 
-        print(str(i) + " / " + str(b - 1))'''
+        print(str(i) + " / " + str(b - 1))
 
         # print analyis in a nice format
     print('Time_step_size\tbf_deviation\ttb_deviation\tbf_time\ttb_time')
@@ -199,7 +201,7 @@ if a == '5':
 
     SKIP = True
 
-    time_range = time_range.split(',')
+    time_range.split(',')
     time_result = {'bodies': [], 'bf_time': [], 'tb_time': []}
 
     for i in range(int(time_range[0]), int(time_range[1])):

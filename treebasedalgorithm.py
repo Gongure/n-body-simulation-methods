@@ -7,10 +7,10 @@ from visualization import *
 
 import copy
 
-theta = 0.5
 
 # Calculate the gravitational constant
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
+# in AU?
 
 
 class Node:
@@ -21,7 +21,9 @@ class Node:
     bbox = None
 
 
-def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions):
+def treeBasedAlgorithm(time_steps, time_step_size, initial_conditions, input_theta):
+    global theta
+    theta = input_theta
     # tim_step_size defines the time between each iteration
     boundary_boxes = []
     # Setup the initial conditions
@@ -134,7 +136,6 @@ def calculateForce(node, body_position, mass):
         return np.array([0, 0, 0]) * u.N
     # If the current node is an external node (and it is not body b), calculate the force exerted by the current node on b, and add this amount to b’s net force.
     elif node.children is None:
-
         resultingForce = calculateGravity(
             node.center_of_mass, body_position, node.mass, mass)
         return resultingForce
