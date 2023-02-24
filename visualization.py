@@ -1,15 +1,7 @@
-
-import matplotlib.animation as anim
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.animation as animation
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from astroquery.jplhorizons import Horizons
-from astropy.coordinates import SkyCoord
-from astropy import units as u
 from matplotlib.backend_tools import ToolBase
-from matplotlib.animation import FuncAnimation
-import matplotlib
 matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
@@ -24,11 +16,9 @@ def animate(data, time_steps, bboxes, name, real_data):
                 x['position'][i] = x['position'][i].value
 
     PLOT_MAX = 7
-    ARROW_LENGTH = 0.5
 
     plt.ion()
     fig = plt.figure()
-    ax = Axes3D(fig)
     ax = fig.add_subplot(111, projection='3d')
     fig.suptitle(name, fontsize=12)
 
@@ -39,7 +29,7 @@ def animate(data, time_steps, bboxes, name, real_data):
     show_axes = True
 
     if bboxes is not None:
-        newbboxes = []
+        new_bboxes = []
         for line in bboxes:
             newline = []
             for bbox in line:
@@ -56,7 +46,7 @@ def animate(data, time_steps, bboxes, name, real_data):
                 array = np.array([ooo, ioo, ioi, ioo, iio, iii, iio,
                                   oio, oii, oio, ooo, ooi, ioi, iii, oii, ooi])
                 newline.append(array)
-            newbboxes.append(newline)
+            new_bboxes.append(newline)
 
     for i in range(time_steps):
         while is_paused:
@@ -85,7 +75,6 @@ def animate(data, time_steps, bboxes, name, real_data):
         current_positions_y = []
         current_positions_z = []
 
-        # Unwichtig glaube ich : umscrheiben: vorher schon unterteilenen und dann nur noch die richtigen nehmen
         for body in data:
             current_positions_x += [body['position'][i][0]]
             current_positions_y += [body['position'][i][1]]
@@ -108,11 +97,11 @@ def animate(data, time_steps, bboxes, name, real_data):
                 xs=real_positions_x, ys=real_positions_y, zs=real_positions_z, c='red')
 
         if bboxes is not None:
-            line = newbboxes[i]
-            for bboxpoints in line:
-                x_points = bboxpoints[:, 0]
-                y_points = bboxpoints[:, 1]
-                z_points = bboxpoints[:, 2]
+            line = new_bboxes[i]
+            for bbox_points in line:
+                x_points = bbox_points[:, 0]
+                y_points = bbox_points[:, 1]
+                z_points = bbox_points[:, 2]
                 ax.plot(x_points, y_points, z_points, color='black')
                 if is_slow:
                     plt.pause(0.001)
@@ -120,12 +109,11 @@ def animate(data, time_steps, bboxes, name, real_data):
         plt.pause(0.001)
 
 
-def visualize_planetary_motionEndPic(data, time_steps):
+def visualize_planetary_motion_end_pic(data):
     for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
 
-    fig = plt.figure()
     ax = plt.axes(projection="3d")
 
     PLOT_MAX = 5
@@ -170,7 +158,7 @@ class Axes(ToolBase):
         show_axes = not show_axes
 
 
-class slow(ToolBase):
+class Slow(ToolBase):
     image = r"/assets/pic.png"
     description = "Show Tree Construction"
 
@@ -181,7 +169,7 @@ class slow(ToolBase):
         is_slow = not is_slow
 
 
-class comparison(ToolBase):
+class Comparison(ToolBase):
     image = r"/assets/pic.png"
     description = "Show Comparison"
 
@@ -209,14 +197,14 @@ def setup_buttons(fig):
     show_axes = False
 
     tm = fig.canvas.manager.toolmanager
-    tm.add_tool("slow", slow)
+    tm.add_tool("slow", Slow)
     fig.canvas.manager.toolbar.add_tool(
         tm.get_tool("slow"), "toolgroup")
     global is_slow
     is_slow = True
 
     tm = fig.canvas.manager.toolmanager
-    tm.add_tool("comparison", comparison)
+    tm.add_tool("comparison", Comparison)
     fig.canvas.manager.toolbar.add_tool(
         tm.get_tool("comparison"), "toolgroup")
     global show_comparison

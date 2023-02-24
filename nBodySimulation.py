@@ -1,96 +1,86 @@
-from bruteforcealgorithm import *
-from utilities import *
-from treebasedalgorithm import *
-from visualization import *
-
-from astropy.time import Time
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-import numpy as np
-from astroquery.jplhorizons import Horizons
-from astropy.coordinates import SkyCoord
-from astropy import units as u
-from matplotlib.backend_tools import ToolBase
-from matplotlib.animation import FuncAnimation
-import matplotlib
-
 import time
 
-from copy import deepcopy
-
-# matplotlib.rcParams["toolbar"] = "toolmanager"
+from bruteforcealgorithm import *
+from treebasedalgorithm import *
+from utilities import *
+from visualization import *
 
 SKIP = False
 body_number = None
 theta = 0.5
 
 
+# Die Setup Funktion bildet die Schnittstelle zwischen der Benutzereingabe und dem eigentlichen Programm.
+# Time_step_size ist die Zeit zwischen zwei Iterationen. In Bezug auf die Euler Methode entspricht das der Schrittweite.
 def setup(start_date, total_time, time_step_size, simulation_type):
+
+    # Das Datum wird in Julianische Tage umgerechnet
     start_julian_date = Time(start_date).jd
-    # print(start_julian_date)
     end_julian_date = start_julian_date + total_time.to(u.day).value
 
-    # print(end_julian_date)
-
-    inital_conditions = fetch_data('on', start_julian_date, time_step_size)
-
-    '''real_conditions = fetch_data(
-        start_julian_date, end_julian_date, time_step_size)'''
-    real_conditions = fetch_data('on', end_julian_date, time_step_size)
+    # Die Daten werden aus der Nasa Datenbank abgerufen
+    # Es werden drei Parameter übergeben: das anfangs Datum, das Enddatum und die Schrittweite
+    initial_conditions = fetch_data('on', start_julian_date, time_step_size)
+    real_conditions = fetch_data(
+        start_julian_date, end_julian_date, time_step_size)
 
     global body_number
+    # Aus den initialen Bedingungen nur die ersten [body_number] Körper behalten
+    initial_conditions = initial_conditions[:body_number]
+    real_conditions = real_conditions[:body_number]
 
-    # From initial conditions, only keep the first c bodies
-    inital_conditions = inital_conditions[:body_number]
-
+    # Falls die Benutzereingabe nicht übersprungen werden soll,
+    # Gibt es die Möglichkeit, zusätzliche Körper hinzuzufügen
     if not SKIP:
         if input('Add bodies? (y/n) [This will break the accuracy prediction]: ') == 'y':
             body = input(
                 'Enter: name, mass, x, y, z, vx, vy, vz, color (with xyz in AU & vxvyvz in AU/day && no spacing): ')
             body = body.split(',')
-            body = {'name': body[0], 'mass': float(body[1]) * u.kg, 'position': [np.array([float(body[2]), float(body[3]), float(
-                body[4])]) * u.au], 'velocity': [np.array([float(body[5]), float(body[6]), float(body[7])]) * u.au / u.day], 'color': body[8]}
+            body = {'name': body[0],
+                    'mass': float(body[1]) * u.kg,
+                    'position': [np.array([float(body[2]), float(body[3]), float(body[4])]) * u.au],
+                    'velocity': [np.array([float(body[5]), float(body[6]), float(body[7])]) * u.au / u.day],
+                    'color': body[8]}
 
-            inital_conditions.append(body)
-            for i in range(len(real_conditions[1]['position'])):
-                real_conditions[-1]['position'][i] = body['position'][0]
+            initial_conditions.append(body)
+            for j in range(len(real_conditions[1]['position'])):
+                real_conditions[-1]['position'][j] = body['position'][0]
 
     time_steps = int(total_time / time_step_size)
 
     results = []
-    bboxes = []
+    s_bboxes = []
 
     # calculate the efficiency of the simulation in terms of time
-    time_result = 0
+    s_time_result = 0
 
     if simulation_type == 'brute-force':
-        time_result = time.time()
-        results = bruteForceSimulation(
-            time_steps, time_step_size, inital_conditions)
-        time_result = time.time() - time_result
+        s_time_result = time.time()
+        results = brute_force_simulation(
+            time_steps, time_step_size, initial_conditions)
+        s_time_result = time.time() - s_time_result
 
-        bboxes = None
+        s_bboxes = None
     elif simulation_type == 'tree-based':
         global theta
-        time_result = time.time()
-        results, bboxes = treeBasedAlgorithm(
-            time_steps, time_step_size, inital_conditions, theta)
-        time_result = time.time() - time_result
+        s_time_result = time.time()
+        results, s_bboxes = tree_based_algorithm(
+            time_steps, time_step_size, initial_conditions, theta)
+        s_time_result = time.time() - s_time_result
 
-    animationtype = 0
+    animation_type = 0
     if not SKIP:
-        animationtype = input(
+        animation_type = input(
             'Choose animation type:\n[1] Live3D\n[2] EndPic\n[3] Skip\n')
 
-    if animationtype == '1':
-        animate(copy.deepcopy(results), time_steps, bboxes, simulation_type,
+    if animation_type == '1':
+        animate(copy.deepcopy(results), time_steps, s_bboxes, simulation_type,
                 copy.deepcopy(real_conditions))
-    elif animationtype == '2':
-        visualize_planetary_motionEndPic(copy.deepcopy(results), time_steps)
+    elif animation_type == '2':
+        visualize_planetary_motion_end_pic(copy.deepcopy(results))
 
     # Evaluates the results
-    return evaluate_results(results, real_conditions), time_result
+    return evaluate_results(results, real_conditions), s_time_result
 
     # print(evaluate_results(brute_force_simulation_results, real_conditions))
     # print(evaluate_results(tree_based_simulation_results, real_conditions))
@@ -98,14 +88,15 @@ def setup(start_date, total_time, time_step_size, simulation_type):
 
 # setup('16.08.2005', 5 * u.year, 1 * u.day, 'tree-based')
 
+
 # Ask user for input
 if input("Use default values? (y/n): ") == 'n':
-    start_date = str(input("Enter start date (YYYY-MM-DD): "))
-    total_time = float(input("Enter total time (in years): "))
-    time_step_size = float(
+    setup_start_date = str(input("Enter start date (YYYY-MM-DD): "))
+    setup_total_time = float(input("Enter total time (in years): "))
+    setup_time_step_size = float(
         input("Enter time step size (in hours): "))
-    total_time *= u.year
-    time_step_size *= u.hour
+    setup_total_time *= u.year
+    setup_time_step_size *= u.hour
 
     bruteForceSimulationResults = []
     treeBasedSimulationResults = []
@@ -113,37 +104,37 @@ if input("Use default values? (y/n): ") == 'n':
 
     theta = float(input('Input theta for Barnes-Hut algorithm: '))
 else:
-    start_date = '2005-08-16'
-    total_time = 1 * u.year
-    time_step_size = 1 * u.day
+    setup_start_date = '2005-08-16'
+    setup_total_time = 1 * u.year
+    setup_time_step_size = 1 * u.day
 
 
 body_number = int(input(
-    'Input integer for number of bodies to simulate (Planets = 0-8, Moons = 8-40: '))
+    'Input integer for number of bodies to simulate (Planets = 0-8, Moons = 8-40): '))
 
 
-start_date = str(start_date + ' 00:00:00')
+setup_start_date = str(setup_start_date + ' 00:00:00')
 
 a = input(
-    "Choose simulation type:\n[1] Brute Force\n[2] Barnes-Hut\n[3] Both\n[4] Acccuracy + Time Analysis\n[5] Full Time Analysis\n")
+    "Choose simulation type:\n[1] Brute Force\n[2] Barnes-Hut\n[3] Both\n[4] Accuracy + Time Analysis\n[5] Full Time "
+    "Analysis\n")
 
 brute_force_deviation = 0
 tree_based_deviation = 0
 
-
 if a == '1':
     brute_force_deviation = setup(
-        start_date, total_time, time_step_size, 'brute-force')
+        setup_start_date, setup_total_time, setup_time_step_size, 'brute-force')
 if a == '2':
     theta = float(input('Input theta for Barnes-Hut algorithm: '))
     tree_based_deviation = setup(
-        start_date, total_time, time_step_size, 'tree-based')
+        setup_start_date, setup_total_time, setup_time_step_size, 'tree-based')
 
 if a == '3':
     brute_force_deviation = setup(
-        start_date, total_time, time_step_size, 'brute-force')
+        setup_start_date, setup_total_time, setup_time_step_size, 'brute-force')
     tree_based_deviations = setup(
-        start_date, total_time, time_step_size, 'tree-based')
+        setup_start_date, setup_total_time, setup_time_step_size, 'tree-based')
 
 if a != '4' and a != '5':
     if input("Show analysis? (y/n): ") == 'y':
@@ -157,37 +148,38 @@ if a == '4':
     # Plot the deviation of the brute force algorithm and the tree based algorithm
     # For a timespan of 1 year with a time step size of 1 minute, 1 hour, 1 day, 1 week, 1 month
 
-    a = int(input('Beginning time_step_size (in hours): '))
-    b = int(input('Ending time_step_size (in hours): '))
+    a = int(input('Beginning setup_time_step_size (in hours): '))
+    b = int(input('Ending setup_time_step_size (in hours): '))
     SKIP = True
 
     body_number = int(input('Number of bodies to simulate: '))
 
-    analyis = {'Time_step_size': [], 'bf_deviation': [],
-               'tb_deviation': [], 'bf_time': [], 'tb_time': []}
+    analysis = {'Time_step_size': [], 'bf_deviation': [],
+                'tb_deviation': [], 'bf_time': [], 'tb_time': []}
 
     for i in range(a, b):
-        analyis['Time_step_size'].append(i)
+        analysis['Time_step_size'].append(i)
 
-        bfdeviation, bf_time = setup(
-            start_date, 1 * u.year, i * u.hour, 'brute-force')
+        bf_deviation, bf_time = setup(
+            setup_start_date, 1 * u.year, i * u.hour, 'brute-force')
 
-        analyis['bf_deviation'].append(100 * bfdeviation)
-        analyis['bf_time'].append(bf_time)
+        analysis['bf_deviation'].append(100 * bf_deviation)
+        analysis['bf_time'].append(bf_time)
 
-        tbdeviation, tb_time = setup(
-            start_date, 1 * u.year, i * u.hour, 'tree-based')
+        tb_deviation, tb_time = setup(
+            setup_start_date, 1 * u.year, i * u.hour, 'tree-based')
 
-        analyis['tb_deviation'].append(100 * tbdeviation)
-        analyis['tb_time'].append(tb_time)
+        analysis['tb_deviation'].append(100 * tb_deviation)
+        analysis['tb_time'].append(tb_time)
 
         print(str(i) + " / " + str(b - 1))
 
-        # print analyis in a nice format
+        # print analysis in a nice format
     print('Time_step_size\tbf_deviation\ttb_deviation\tbf_time\ttb_time')
-    for i in range(len(analyis['Time_step_size'])):
-        print(str(analyis['Time_step_size'][i]) + ": " + str(analyis['bf_deviation'][i]) + ", " + str(analyis['tb_deviation'][i]) + ", " +
-              str(analyis['bf_time'][i]) + ", " + str(analyis['tb_time'][i]))
+    for i in range(len(analysis['Time_step_size'])):
+        print(str(analysis['Time_step_size'][i]) + ": " +
+              str(analysis['bf_deviation'][i]) + ", " + str(analysis['tb_deviation'][i]) + ", " +
+              str(analysis['bf_time'][i]) + ", " + str(analysis['tb_time'][i]))
 
 
 if a == '5':
@@ -195,10 +187,7 @@ if a == '5':
     # Plot the time it takes for the brute force algorithm and the tree based algorithm
     # For a timespan of 1 year and time increment of 1s and with 2 - 500 bodies
     time_range = input('Range of bodies (n_start,n_end): ')
-    #time_step_size = input('Time step size (in hours): ')
-    #time_step_size = int(time_step_size) * u.hour
-
-    time_step_size = 1 * u.day
+    setup_time_step_size = float(input('Time step size (in hours): ')) * u.hour
 
     SKIP = True
 
@@ -210,12 +199,14 @@ if a == '5':
         body_number = i
 
         time_result['bodies'].append(i)
+
+        # d is not important
         d, bf_time = setup(
-            start_date, 1 * u.year, time_step_size, 'brute-force')
+            setup_start_date, 1 * u.year, setup_time_step_size, 'brute-force')
         time_result['bf_time'].append(bf_time)
 
         d, tb_time = setup(
-            start_date, 1 * u.year, time_step_size, 'tree-based')
+            setup_start_date, 1 * u.year, setup_time_step_size, 'tree-based')
         time_result['tb_time'].append(tb_time)
 
         print(str(i) + " / " + str(time_range[1]))

@@ -1,19 +1,11 @@
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
 import numpy as np
-from astroquery.jplhorizons import Horizons
-from astropy.coordinates import SkyCoord
 from astropy import units as u
-from matplotlib.backend_tools import ToolBase
-from matplotlib.animation import FuncAnimation
-import matplotlib
 
 
-def bruteForceSimulation(time_steps, time_step_size, initial_conditions):
+def brute_force_simulation(time_steps, time_step_size, initial_conditions):
     # tim_step_size defines the time between each iteration
 
-    # Setup the initial conditions
+    # Set up the initial conditions
     current_conditions = initial_conditions
 
     '''
@@ -26,58 +18,37 @@ def bruteForceSimulation(time_steps, time_step_size, initial_conditions):
 
         for body in current_conditions:
 
-            '''resultingForce = np.array([0, 0, 0]) * u.N
-
-            for other_body in current_conditions:
-                if body['name'] != other_body['name']:
-                    # Calculate the connection vector between the bodies
-                        body['position'][-1]
-
-                    # Calculate the length of the connection vector
-                    distance = np.linalg.norm(connectionVector)
-
-                    # Normalize the connection vector
-                    direction = connectionVector / distance
-
-                    # Calculate the gravitational force between the bodies
-                    force = G * (body['mass'] *
-                                 other_body['mass']) / (distance**2)
-
-                    # Calculate the resultant force
-                    resultingForce += force * direction'''
-
-            otherPart = np.array([0, 0, 0]) * u.kg / u.au**2
+            integration_result = np.array([0, 0, 0]) * u.kg / u.au**2
 
             # F = Sum of f  = Gm * sum of m * (position of other body - position of body) / distance^3
 
             for other_body in current_conditions:
                 if body['name'] != other_body['name']:
                     # Calculate the connection vector between the bodies
-                    connectionVector = other_body['position'][-1] - \
+                    connection_vector = other_body['position'][-1] - \
                         body['position'][-1]
 
                     # Calculate the length of the connection vector
-                    distance = np.linalg.norm(connectionVector)
+                    distance = np.linalg.norm(connection_vector)
 
                     # Normalize the connection vector
-                    direction = connectionVector / distance
+                    direction = connection_vector / distance
 
                     '''# Calculate the gravitational force between the bodies
                     force = G * (body['mass'] *
                                  other_body['mass']) / (distance**2)'''
 
-                    thingi = other_body['mass'] / (distance**2)
-                    otherPart += thingi * direction
+                    integration_force_step = other_body['mass'] / (distance**2)
+                    integration_result += integration_force_step * direction
 
                     '''
                     # Calculate the resultant force
-                    resultingForce += force * direction'''
+                    resulting_force += force * direction'''
 
-            resultingForce = body['GM'] * otherPart
-            
+            resulting_force = body['GM'] * integration_result
 
             # Calculate the acceleration of the body
-            acceleration = resultingForce / body['mass']
+            acceleration = resulting_force / body['mass']
 
             # Calculate the new velocity of the body
             body['velocity'].append(
