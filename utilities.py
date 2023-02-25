@@ -7,6 +7,7 @@ from astroquery.jplhorizons import Horizons
 
 def evaluate_results(simulation_results, end_conditions):
     total_deviation = 0
+    # Abweichung berechnen
 
     for i in range(len(simulation_results)):
 
@@ -22,15 +23,7 @@ def evaluate_results(simulation_results, end_conditions):
         deviation = np.linalg.norm(
             (final_position - final_simulation_position).value)
 
-        '''
-        # the penultimate position of the ith object
-        penultimate_position = end_conditions[i]['position'][-2]
-
-        # is this the same as the following?
-        deviation = np.linalg.norm((final_position - final_simulation_position).value) / \
-            np.linalg.norm((final_position - penultimate_position).value + 1)
-        '''
-
+       
         # add the deviation of the ith object to the total deviation
         total_deviation += deviation
 
@@ -164,17 +157,18 @@ def fetch_data(start_date, end_date, time_step_size):
         elif time_step_size.unit == u.second:
             time_step_size = str(str(int(time_step_size.value)) + 's')
         for obj in objects:
-            # Query the JPL Horizons database using Astroquery
-
+            
+            # Die Daten werden von JPL Horizons geholt
+            # iso is ein String der Form 'YYYY-MM-DD HH:MM:SS.SSS'
+            # In Epochs wird ein Dictionary übergeben, welches den Start, das Ende und den Schritt der Zeit angibt
             iso_start = Time(start_date, format='jd').iso
             iso_end = Time(end_date, format='jd').iso
             result = Horizons(
                 id=obj['id'], location='500@10', epochs={'start': iso_start, 'stop': iso_end, 'step': time_step_size}
             ).vectors()
 
-            # Extract the position and velocity data from the result and convert to astropy units
-            # Turn the data into a numpy array
-
+            
+            # Die für uns wichtigen Daten: Die Positionen werden in ein Array umgewandelt
             position = []
             for i in range(len(result['x'])):
                 position.append(

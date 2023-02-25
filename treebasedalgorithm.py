@@ -1,7 +1,5 @@
 import copy
-
 from astropy import units as u
-
 from visualization import *
 
 # Calculate the gravitational constant
@@ -38,12 +36,14 @@ def tree_based_algorithm(time_steps, time_step_size, initial_conditions, input_t
         global current_boxes
         current_boxes = [root.bbox]
 
+        # Körper in Baum einfügen
         for body in current_conditions:
             m = copy.deepcopy(body['mass'])
             p = copy.deepcopy(body['position'][-1])
             insert_in_tree(root, p, m)
         boundary_boxes.append(current_boxes)
 
+        # Kraft berechnen
         for body in current_conditions:
 
             m = copy.deepcopy(body['mass'])
@@ -100,6 +100,7 @@ def insert_in_tree(node, body_position, body_mass):
     # Then, recursively insert both b and c into the appropriate quadrant(s).
     # Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion.
     # Finally, update the center-of-mass and total mass of x.
+
     elif node.children is None:
         node.children = [None, None, None, None, None, None, None, None]
 

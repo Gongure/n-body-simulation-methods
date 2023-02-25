@@ -54,6 +54,7 @@ def setup(start_date, total_time, time_step_size, simulation_type):
     # calculate the efficiency of the simulation in terms of time
     s_time_result = 0
 
+    # Die Simulation wird durchgeführt
     if simulation_type == 'brute-force':
         s_time_result = time.time()
         results = brute_force_simulation(
