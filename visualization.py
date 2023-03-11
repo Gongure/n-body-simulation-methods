@@ -6,17 +6,19 @@ matplotlib.rcParams["toolbar"] = "toolmanager"
 
 
 def animate(data, time_steps, bboxes, name, real_data):
+    # Entfernt die Einheiten, damit die Animation funktioniert
     for x in data:
         for i in range(len(x['position'])):
             x['position'][i] = x['position'][i].value
 
+    # Tue das gleiche für die realen Daten, falls diese vorhanden sind
     if real_data is not None:
         for x in real_data:
             for i in range(len(x['position'])):
                 x['position'][i] = x['position'][i].value
 
+    # Die folgenden Variablen werden für die Animation benötigt
     PLOT_MAX = 7
-
     plt.ion()
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -28,6 +30,7 @@ def animate(data, time_steps, bboxes, name, real_data):
     global show_axes
     show_axes = True
 
+    # Für jede Boundary Box werden die Seiten berechnet, um diese dann zu plotten
     if bboxes is not None:
         new_bboxes = []
         for line in bboxes:
@@ -59,14 +62,14 @@ def animate(data, time_steps, bboxes, name, real_data):
         else:
             plt.axis('on')
 
-        # Set the labels of the plot
+        # Update den Titel und die Achsenbeschriftung
         ax.set_title('Time: ' + str(i) + ' days')
 
         ax.set_xlabel('X in AE')
         ax.set_ylabel('Y in AE')
         ax.set_zlabel('Z in AE')
 
-        # Set the limits of the plot
+        # Setze die Limits der Achsen
         ax.set_xlim(-PLOT_MAX, PLOT_MAX)
         ax.set_ylim(-PLOT_MAX, PLOT_MAX)
         ax.set_zlim(-PLOT_MAX, PLOT_MAX)
@@ -75,14 +78,17 @@ def animate(data, time_steps, bboxes, name, real_data):
         current_positions_y = []
         current_positions_z = []
 
+        # Aus allen dem Array der Positionen für den aktuellen Zeitpunkt die x-, y- und z-Koordinaten extrahieren
         for body in data:
             current_positions_x += [body['position'][i][0]]
             current_positions_y += [body['position'][i][1]]
             current_positions_z += [body['position'][i][2]]
 
+        # Um diese dann zu plotten
         ax.scatter(
             xs=current_positions_x, ys=current_positions_y, zs=current_positions_z, c=colors)
 
+        # Das gleiche für die realen Daten, falls diese vorhanden sind und die Option zum Vergleich aktiviert ist
         if show_comparison:
             real_positions_x = []
             real_positions_y = []
@@ -96,6 +102,7 @@ def animate(data, time_steps, bboxes, name, real_data):
             ax.scatter(
                 xs=real_positions_x, ys=real_positions_y, zs=real_positions_z, c='red')
 
+        # Plotten der Boundary Boxes
         if bboxes is not None:
             line = new_bboxes[i]
             for bbox_points in line:
@@ -107,6 +114,8 @@ def animate(data, time_steps, bboxes, name, real_data):
                     plt.pause(0.001)
 
         plt.pause(0.001)
+
+# Einmaliges anzeigen der Bahnen
 
 
 def visualize_planetary_motion_end_pic(data):
@@ -136,6 +145,7 @@ def visualize_planetary_motion_end_pic(data):
     plt.show()
 
 
+# Knöpfe für die Animation
 class Pause(ToolBase):
     image = r"/assets/pic.png"
     description = "Pause"

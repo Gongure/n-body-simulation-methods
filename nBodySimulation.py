@@ -50,17 +50,14 @@ def setup(start_date, total_time, time_step_size, simulation_type):
 
     results = []
     s_bboxes = []
-
-    # calculate the efficiency of the simulation in terms of time
     s_time_result = 0
 
-    # Die Simulation wird durchgeführt
+    # Entweder die Brute Force Simulation oder die Baumbasierte Simulation wird ausgeführt
     if simulation_type == 'brute-force':
         s_time_result = time.time()
         results = brute_force_simulation(
             time_steps, time_step_size, initial_conditions)
         s_time_result = time.time() - s_time_result
-
         s_bboxes = None
     elif simulation_type == 'tree-based':
         global theta
@@ -69,6 +66,7 @@ def setup(start_date, total_time, time_step_size, simulation_type):
             time_steps, time_step_size, initial_conditions, theta)
         s_time_result = time.time() - s_time_result
 
+    # Hier kann der Benutzer entscheiden, ob er die Animation sehen möchte
     animation_type = 0
     if not SKIP:
         animation_type = input(
@@ -83,14 +81,11 @@ def setup(start_date, total_time, time_step_size, simulation_type):
     # Evaluates the results
     return evaluate_results(results, real_conditions), s_time_result
 
-    # print(evaluate_results(brute_force_simulation_results, real_conditions))
-    # print(evaluate_results(tree_based_simulation_results, real_conditions))
-
-
+# Hier kann man die Simulation mit den Standardwerten ausführen lassen und die benutzereingabe überspringen
 # setup('16.08.2005', 5 * u.year, 1 * u.day, 'tree-based')
 
 
-# Ask user for input
+# Der Benutzer kann die Simulation mit eigenen Werten ausführen lassen
 if input("Use default values? (y/n): ") == 'n':
     setup_start_date = str(input("Enter start date (YYYY-MM-DD): "))
     setup_total_time = float(input("Enter total time (in years): "))
@@ -104,6 +99,7 @@ if input("Use default values? (y/n): ") == 'n':
     bboxes = []
 
     theta = float(input('Input theta for Barnes-Hut algorithm: '))
+# oder die Standardwerte verwenden
 else:
     setup_start_date = '2005-08-16'
     setup_total_time = 1 * u.year
@@ -184,9 +180,7 @@ if a == '4':
 
 
 if a == '5':
-    # Time analysis mode
-    # Plot the time it takes for the brute force algorithm and the tree based algorithm
-    # For a timespan of 1 year and time increment of 1s and with 2 - 500 bodies
+    # Full analysis mode time
     time_range = input('Range of bodies (n_start,n_end): ')
     setup_time_step_size = float(input('Time step size (in hours): ')) * u.hour
 
@@ -201,7 +195,7 @@ if a == '5':
 
         time_result['bodies'].append(i)
 
-        # d is not important
+        # d ist irrelevant
         d, bf_time = setup(
             setup_start_date, 1 * u.year, setup_time_step_size, 'brute-force')
         time_result['bf_time'].append(bf_time)
@@ -212,7 +206,6 @@ if a == '5':
 
         print(str(i) + " / " + str(time_range[1]))
 
-    # print time_result in a nice  format
     print('bodies\tbf_time\ttb_time')
     for i in range(len(time_result['bodies'])):
         print(str(time_result['bodies'][i]) + ': ' + '\t' +

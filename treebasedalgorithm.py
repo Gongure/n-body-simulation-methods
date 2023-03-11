@@ -2,11 +2,11 @@ import copy
 from astropy import units as u
 from visualization import *
 
-# Calculate the gravitational constant
+# Die Gravitationskonstante
 G = 6.674e-11 * u.m**3 * u.kg**-1 * u.s**-2
-# in AU?
 
 
+# Erstelle eine Klasse für Knoten im Baum
 class Node:
     children = None
     mass = None
@@ -18,17 +18,16 @@ class Node:
 def tree_based_algorithm(time_steps, time_step_size, initial_conditions, input_theta):
     global theta
     theta = input_theta
-    # tim_step_size defines the time between each iteration
+
     boundary_boxes = []
-    # Set up the initial conditions
     current_conditions = initial_conditions
 
-    # Iterate over the time steps
+    # Iterate über die Zeitschritte
     for i in range(time_steps):
 
-        # Construct the tree
+        # Erstelle den Baum
         root = Node()
-        # root.center_of_mass = []
+        # Finde die Bounding Box des gesamten Systems
         root.bbox = find_root_bbox([body['position'][-1].value
                                    for body in current_conditions])
 
@@ -46,22 +45,21 @@ def tree_based_algorithm(time_steps, time_step_size, initial_conditions, input_t
         # Kraft berechnen
         for body in current_conditions:
 
+            # Kopiere die Masse und Position des Körpers, damit diese nicht verändert werden
             m = copy.deepcopy(body['mass'])
             p = copy.deepcopy(body['position'][-1])
             resulting_force = calculate_force_for_tree(
                 root, p, m)
 
-            # Calculate the acceleration of the body
+            # Berechne die Beschleunigung des Körpers mit a = F / m
             acceleration = resulting_force / body['mass']
 
-            # Calculate the new velocity of the body
+            # Berechne die neue Geschwindigkeit des Körpers mit v = v0 + a * dt
             body['velocity'].append(
                 body['velocity'][-1] + (acceleration * time_step_size))
 
-        """
-        """
+        # Berechne die neue Position des Körpers mit p = p0 + v * dt für jeden Körper
         for body in current_conditions:
-            # Calculate the new position of the body
             body['position'].append(
                 body['position'][-1] + body['velocity'][-1] * time_step_size)
 
@@ -73,14 +71,15 @@ def tree_based_algorithm(time_steps, time_step_size, initial_conditions, input_t
 
 def insert_in_tree(node, body_position, body_mass):
     global current_boxes
-    # If node x does not contain a body, put the new body b here.
+    # Fall 1: Falls der Knoten x ein externer Knoten ist, der noch keinen Körper enthält, dann
+    # füge den Körper b in den Knoten x ein.
     if node.mass is None:
         node.mass = copy.deepcopy(body_mass)
         node.center_of_mass = copy.deepcopy(body_position)
         return
 
-    # If node x is an internal node, update the center-of-mass and total mass of x.
-    # Recursively insert the body b in the appropriate quadrant.
+    # Fall 2: Falls der Knoten x ein interner Knoten ist, dann aktualisiere den Mittelpunkt der Masse und die Gesamtmasse von x.
+    # Füge den Körper b rekursiv in das entsprechende Octanten ein.
     elif node.children is not None:
         node.center_of_mass = copy.deepcopy((node.center_of_mass * node.mass +
                                              body_position * body_mass) / (node.mass + body_mass))
@@ -94,19 +93,18 @@ def insert_in_tree(node, body_position, body_mass):
             body_position), copy.deepcopy(body_mass))
         return
 
-    # If node x is an external node, say containing a body named c,
-    # then there are two bodies b and c in the same region.
-    # Subdivide the region further by creating four children.
-    # Then, recursively insert both b and c into the appropriate quadrant(s).
-    # Since b and c may still end up in the same quadrant, there may be several subdivisions during a single insertion.
-    # Finally, update the center-of-mass and total mass of x.
-
+    # Fall 3: Falls der Knoten x ein externer Knoten ist, der bereits einen Körper enthält, dann
+    # füge den Körper b in den Knoten x ein.
+    # Unterteile die Region weiter in vier Kinder.
+    # Füge dann beide Körper rekursiv in die entsprechenden Octanten ein.
+    # Da b und c noch im selben Octanten landen können, kann es mehrere Unterteilungen während einer einzelnen Einfügung geben.
+    # Aktualisiere schließlich den Mittelpunkt der Masse und die Gesamtmasse von x.
     elif node.children is None:
         node.children = [None, None, None, None, None, None, None, None]
 
-        # get the octant of the current node
+        # Erhalte den Octanten des alten Körpers
         old_octant = get_octant(node.bbox, node.center_of_mass)
-        # get the octant of the new body
+        # Erhalte den Octanten des neuen Körpers
         new_octant = get_octant(node.bbox, body_position)
 
         node.children[old_octant] = Node()
@@ -119,14 +117,14 @@ def insert_in_tree(node, body_position, body_mass):
             node.children[new_octant].bbox = find_bbox(node.bbox, new_octant)
             current_boxes.append(node.children[new_octant].bbox)
 
-        # insert the old body in the appropriate quadrant
+        # Füge den alten Körper in den entsprechenden Octanten ein
         insert_in_tree(node.children[old_octant], copy.deepcopy(
             node.center_of_mass), copy.deepcopy(node.mass))
-        # insert the new body in the appropriate quadrant
+        # Füge den neuen Körper in den entsprechenden Octanten ein
         insert_in_tree(node.children[new_octant], copy.deepcopy(
             body_position), copy.deepcopy(body_mass))
 
-        # update the center of mass and mass of the current node
+        # Update den Mittelpunkt der Masse und die Gesamtmasse von x
         node.center_of_mass = copy.deepcopy((node.center_of_mass * node.mass +
                                              body_position * body_mass) / (node.mass + body_mass))
         node.mass += copy.deepcopy(body_mass)
@@ -134,31 +132,33 @@ def insert_in_tree(node, body_position, body_mass):
 
 
 def calculate_force_for_tree(node, body_position, mass):
+    # Falls unser Körper b dem aktuellen Knoten x entspricht, dann
+    # gibt es keine Kraft, die auf b wirkt.
     if node.mass == mass:
         return np.array([0, 0, 0]) * u.N
-    # If the current node is an external node (and it is not body b),
-    # calculate the force exerted by the current node on b, and add this amount to b’s net force.
+
+    # Falls der Knoten x ein externer Knoten ist,
+    # berechne die Kraft, die der aktuelle Knoten auf den Körper b ausübt, und füge diese Menge zu b’s Gesamtkraft hinzu.
     elif node.children is None:
         resulting_force = calculate_gravity(
             node.center_of_mass, body_position, node.mass, mass)
         return resulting_force
 
     else:
-        # Otherwise, calculate the ratio s/d.
-
-        # size of the square boundary box
+        # Sonst berechne den Verhältnis s/d.
+        # s = Seitenlänge des Octanten des aktuellen Knotens
         s = np.linalg.norm(node.bbox[1][0] - node.bbox[0][0])
-        # distance between the center of mass and the body
+        # d = Entfernung zwischen dem Mittelpunkt der Masse des aktuellen Knotens und dem Mittelpunkt der Masse von b
         d = np.linalg.norm((body_position - node.center_of_mass).value)
-        # If s/d < θ, treat this internal node as a single body, and calculate the force it exerts on body b,
-        # and add this amount to b’s net force.
+        # Falls s/d < θ, behandele diesen internen Knoten als einen einzelnen Körper und berechne die Kraft, die er auf den Körper b ausübt,
+        # und füge diese Menge zu b’s Gesamtkraft hinzu.
         if s/d < theta:
             resulting_force = calculate_gravity(
                 node.center_of_mass, body_position, node.mass, mass)
 
             return resulting_force
         else:
-            # Otherwise, run the procedure recursively on each of the curren t node’s children.
+            # Ansonsten führe die Prozedur rekursiv auf jeden der aktuellen Knotens’ Kinder aus.
             resulting_force = np.array([0, 0, 0]) * u.N
 
             for child in node.children:
@@ -168,31 +168,35 @@ def calculate_force_for_tree(node, body_position, mass):
             return resulting_force
 
 
-########################## Helper functions##########################
+########################## Helper functions ##########################
 
-
+# Berechne die Kraft, die der Körper a auf den Körper b ausübt
 def calculate_gravity(other_body_position, body_position, other_body_mass, body_mass):
-    # Calculate the connection vector between the bodies
+    # Berechne den Verbindungsvektor zwischen den beiden Körpern
     connection_vector = other_body_position - body_position
 
-    # Calculate the length of the connection vector
+    # Berechne die Entfernung zwischen den beiden Körpern
     distance = np.linalg.norm(connection_vector)
 
-    # Normalize the connection vector
+    # Normalisiere den Verbindungsvektor um die Richtung zu erhalten
     direction = connection_vector / distance
 
-    # Calculate the gravitational force between the bodies
+    # Berechne die Kraft, die der Körper a auf den Körper b ausübt
+    # F = G * (m1 * m2) / (d**2)
     force = G * (body_mass * other_body_mass) / (distance**2)
 
-    # Calculate the resultant force
+    # Berechne die gerichtete Kraft und gib sie zurück
     resulting_force = force * direction
 
     return resulting_force
 
+# Finde die Bounding Box des Wurzelknotens
+# Diese Bounding Box ist ein Würfel, der jeden Körper der Simulation enthält
+
 
 def find_root_bbox(array_of_positions):
-    # Fin the smallest and largest x, y and z values
 
+    # Finde die kleinste und größte x-, y- und z-Koordinate
     min_x = min(array_of_positions, key=lambda x: x[0])[0]
     max_x = max(array_of_positions, key=lambda x: x[0])[0]
     min_y = min(array_of_positions, key=lambda x: x[1])[1]
@@ -200,18 +204,20 @@ def find_root_bbox(array_of_positions):
     min_z = min(array_of_positions, key=lambda x: x[2])[2]
     max_z = max(array_of_positions, key=lambda x: x[2])[2]
 
-    # Find the largest difference between the smallest and largest values
+    # Finde die größte Differenz zwischen den Koordinaten
     max_diff = max(max_x - min_x, max_y - min_y, max_z - min_z)
 
-    # Find the center of the root bounding box
+    # Finde den Mittelpunkt der Bounding Box
     center = np.array([min_x, min_y, min_z]) + \
         np.array([max_x-min_x, max_y-min_y, max_z-min_z])/2
 
-    # Fin the bottom left corner of the root bounding box
+    # Finde die Ecken der Bounding Box und gebe diese zurück
     cmin = center - np.array([max_diff, max_diff, max_diff])/2
     cmax = center + np.array([max_diff, max_diff, max_diff])/2
 
     return [cmin, cmax]
+
+# Finde den Octanten, in den der Körper position passt
 
 
 def get_octant(bbox, position):
@@ -230,6 +236,8 @@ def get_octant(bbox, position):
         a += 4
 
     return a
+
+# Finde die Bounding Box des Octanten octant
 
 
 def find_bbox(bbox, octant):
@@ -258,5 +266,3 @@ def find_bbox(bbox, octant):
         return [np.array([cmin[0], center[1], center[2]]), np.array([center[0], cmax[1], cmax[2]])]
     elif octant == 7:
         return [center, cmax]
-
-        # boundary of the octant cube

@@ -1,40 +1,38 @@
-
 import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from astroquery.jplhorizons import Horizons
 
 
+# Evaluiere die Ergebnisse der Simulation
 def evaluate_results(simulation_results, end_conditions):
     total_deviation = 0
     # Abweichung berechnen
 
     for i in range(len(simulation_results)):
 
-        # the deviation of the ith object
-
-        # the final position of the ith object
+        # Die finale Position des i-ten Körpers in den NASA-Daten
         final_position = end_conditions[i]['position'][-1]
 
-        # the final position of the ith object in the simulation
+        # Die finale Position des i-ten Körpers in den Simulationsergebnissen
         final_simulation_position = simulation_results[i]['position'][-1]
 
-        # deviation
+        # Die Abweichung zwischen den beiden Positionen
         deviation = np.linalg.norm(
             (final_position - final_simulation_position).value)
 
-       
-        # add the deviation of the ith object to the total deviation
+        # Addiere die Abweichung zur Gesamtabweichung
         total_deviation += deviation
 
-    # the average deviation is the total deviation divided by the number of objects
+    # Die durchschnittliche Abweichung ist die Gesamtabweichung geteilt durch die Anzahl der Körper
     average_deviation = total_deviation / len(simulation_results)
 
     return average_deviation
 
 
+# Lade die Daten der NASA
 def fetch_data(start_date, end_date, time_step_size):
-
+    # Die Liste der Körper, die wir simulieren wollen
     objects = [
         {'name': 'Sun', 'mass': 1.989e+30 * u.kg,
             'id': '10', 'color': 'yellow', 'GM': 1.3271244004193938E+11},
@@ -157,7 +155,7 @@ def fetch_data(start_date, end_date, time_step_size):
         elif time_step_size.unit == u.second:
             time_step_size = str(str(int(time_step_size.value)) + 's')
         for obj in objects:
-            
+
             # Die Daten werden von JPL Horizons geholt
             # iso is ein String der Form 'YYYY-MM-DD HH:MM:SS.SSS'
             # In Epochs wird ein Dictionary übergeben, welches den Start, das Ende und den Schritt der Zeit angibt
@@ -167,7 +165,6 @@ def fetch_data(start_date, end_date, time_step_size):
                 id=obj['id'], location='500@10', epochs={'start': iso_start, 'stop': iso_end, 'step': time_step_size}
             ).vectors()
 
-            
             # Die für uns wichtigen Daten: Die Positionen werden in ein Array umgewandelt
             position = []
             for i in range(len(result['x'])):
